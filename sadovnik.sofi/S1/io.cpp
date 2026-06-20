@@ -1,6 +1,5 @@
 #include "io.hpp"
 
-#include <ios>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
@@ -118,7 +117,7 @@ namespace sadovnik
     {
       List< std::size_t > numbers;
       readNumbers(in, numbers);
-      sequences.pushBack(Seq(name, numbers));
+      sequences.pushBack(Seq(name, std::move(numbers)));
     }
 
     return sequences;

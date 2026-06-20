@@ -56,6 +56,16 @@ BOOST_AUTO_TEST_CASE(insert_after_last_appends_element)
   BOOST_TEST(list.back() == 2);
 }
 
+BOOST_AUTO_TEST_CASE(insert_after_end_appends_element)
+{
+  List< int > list;
+  list.pushBack(1);
+  list.insertAfter(list.end(), 2);
+
+  BOOST_TEST(list.size() == 2);
+  BOOST_TEST(list.back() == 2);
+}
+
 BOOST_AUTO_TEST_CASE(insert_after_middle_keeps_order)
 {
   List< int > list;

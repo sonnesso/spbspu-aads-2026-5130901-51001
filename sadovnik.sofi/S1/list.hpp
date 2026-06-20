@@ -349,33 +349,27 @@ namespace sadovnik
     void pushFront(const T & value)
     {
       detail::ListNode< T > * node = new detail::ListNode< T >(value);
-      node->next_ = head_;
-      if (head_ != nullptr)
-      {
-        head_->prev_ = node;
-      }
-      else
-      {
-        tail_ = node;
-      }
-      head_ = node;
-      ++size_;
+      linkFront(node);
+    }
+
+    void pushFront(T && value)
+    {
+      detail::ListNode< T > * node =
+        new detail::ListNode< T >(std::move(value));
+      linkFront(node);
     }
 
     void pushBack(const T & value)
     {
       detail::ListNode< T > * node = new detail::ListNode< T >(value);
-      node->prev_ = tail_;
-      if (tail_ != nullptr)
-      {
-        tail_->next_ = node;
-      }
-      else
-      {
-        head_ = node;
-      }
-      tail_ = node;
-      ++size_;
+      linkBack(node);
+    }
+
+    void pushBack(T && value)
+    {
+      detail::ListNode< T > * node =
+        new detail::ListNode< T >(std::move(value));
+      linkBack(node);
     }
 
     void popFront()
@@ -472,6 +466,40 @@ namespace sadovnik
     }
 
   private:
+    detail::ListNode< T > * head_;
+    detail::ListNode< T > * tail_;
+    std::size_t size_;
+
+    void linkFront(detail::ListNode< T > * node)
+    {
+      node->next_ = head_;
+      if (head_ != nullptr)
+      {
+        head_->prev_ = node;
+      }
+      else
+      {
+        tail_ = node;
+      }
+      head_ = node;
+      ++size_;
+    }
+
+    void linkBack(detail::ListNode< T > * node)
+    {
+      node->prev_ = tail_;
+      if (tail_ != nullptr)
+      {
+        tail_->next_ = node;
+      }
+      else
+      {
+        head_ = node;
+      }
+      tail_ = node;
+      ++size_;
+    }
+
     void unlinkNode(detail::ListNode< T > * node)
     {
       if (node->prev_ == nullptr)
@@ -492,11 +520,13 @@ namespace sadovnik
         node->next_->prev_ = node->prev_;
       }
     }
-
-    detail::ListNode< T > * head_;
-    detail::ListNode< T > * tail_;
-    std::size_t size_;
   };
+
+  template< class T >
+  void swap(List< T > & lhs, List< T > & rhs) noexcept
+  {
+    lhs.swap(rhs);
+  }
 
 }
 

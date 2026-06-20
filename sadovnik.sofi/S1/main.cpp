@@ -5,9 +5,11 @@
 
 int main()
 {
+  using namespace sadovnik;
+
   try
   {
-    sadovnik::List< sadovnik::Seq > sequences = sadovnik::readData(std::cin);
+    List< Seq > sequences = readData(std::cin);
 
     if (sequences.empty())
     {
@@ -15,12 +17,10 @@ int main()
       return 0;
     }
 
-    sadovnik::printNames(std::cout, sequences);
+    printNames(std::cout, sequences);
 
     bool hasNumbers = false;
-    for (sadovnik::LCIter< sadovnik::Seq > it = sequences.cbegin();
-      it != sequences.cend();
-      ++it)
+    for (LCIter< Seq > it = sequences.cbegin(); it != sequences.cend(); ++it)
     {
       if (!(*it).second.empty())
       {
@@ -35,9 +35,9 @@ int main()
       return 0;
     }
 
-    sadovnik::printTransposed(std::cout, sequences);
-    sadovnik::List< std::size_t > sums = sadovnik::calculateSums(sequences);
-    sadovnik::printSums(std::cout, sums);
+    printTransposed(std::cout, sequences);
+    List< std::size_t > sums = calculateSums(sequences);
+    printSums(std::cout, sums);
     return 0;
   }
   catch (const std::overflow_error & error)
