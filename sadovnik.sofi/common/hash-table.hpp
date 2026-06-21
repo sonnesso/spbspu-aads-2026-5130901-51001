@@ -86,7 +86,74 @@ namespace sadovnik
       return slotCnt_ * (bktSize_ + detail::SPARE_POS);
     }
 
+    bool add(const Key & key, const Value & val)
+    {
+      if (findEntry(key) != nullptr)
+      {
+        throw std::logic_error("duplicate key");
+      }
+
+      Entry * cell = findFreeEntry(key);
+      if (cell == nullptr)
+      {
+        throw std::overflow_error("hash table is full");
+      }
+
+      cell->key = key;
+      cell->val = val;
+      cell->used = true;
+      ++elemCnt_;
+      return true;
+    }
+
+    bool has(const Key & key) const
+    {
+      return findEntry(key) != nullptr;
+    }
+
+    Value * find(const Key & key)
+    {
+      Entry * entry = findEntry(key);
+      if (entry == nullptr)
+      {
+        return nullptr;
+      }
+      return &entry->val;
+    }
+
+    const Value * find(const Key & key) const
+    {
+      const Entry * entry = findEntry(key);
+      if (entry == nullptr)
+      {
+        return nullptr;
+      }
+      return &entry->val;
+    }
+
+    Value & get(const Key & key)
+    {
+      Entry * entry = findEntry(key);
+      if (entry == nullptr)
+      {
+        throw std::out_of_range("missing key");
+      }
+      return entry->val;
+    }
+
+    const Value & get(const Key & key) const
+    {
+      const Entry * entry = findEntry(key);
+      if (entry == nullptr)
+      {
+        throw std::out_of_range("missing key");
+      }
+      return entry->val;
+    }
+
   private:
+    static const std::size_t HOME_POS = 0;
+
     std::size_t homeSlot(const Key & key) const
     {
       return hash_(key) % slotCnt_;
@@ -95,6 +162,64 @@ namespace sadovnik
     std::size_t flatIdx(std::size_t slot, std::size_t pos) const
     {
       return slot * (bktSize_ + detail::SPARE_POS) + pos;
+    }
+
+    std::size_t sparePos() const
+    {
+      return bktSize_;
+    }
+
+    Entry * findEntry(const Key & key) noexcept
+    {
+      return const_cast< Entry * >(static_cast< const HashTable * >(this)->findEntry(key));
+    }
+
+    const Entry * findEntry(const Key & key) const noexcept
+    {
+      if (slotCnt_ == 0)
+      {
+        return nullptr;
+      }
+
+      const std::size_t start = homeSlot(key);
+      for (std::size_t offset = HOME_POS; offset < slotCnt_; ++offset)
+      {
+        const std::size_t slot = (start + offset) % slotCnt_;
+        for (std::size_t pos = HOME_POS; pos <= sparePos(); ++pos)
+        {
+          const Entry & cell = cells_[flatIdx(slot, pos)];
+          if (cell.used && equal_(cell.key, key))
+          {
+            return &cell;
+          }
+        }
+      }
+      return nullptr;
+    }
+
+    Entry * findFreeEntry(const Key & key) noexcept
+    {
+      const std::size_t start = homeSlot(key);
+      for (std::size_t offset = HOME_POS; offset < slotCnt_; ++offset)
+      {
+        const std::size_t slot = (start + offset) % slotCnt_;
+
+        for (std::size_t pos = HOME_POS; pos < bktSize_; ++pos)
+        {
+          Entry & cell = cells_[flatIdx(slot, pos)];
+          if (!cell.used)
+          {
+            return &cell;
+          }
+        }
+
+        Entry & spare = cells_[flatIdx(slot, sparePos())];
+        if (!spare.used)
+        {
+          return &spare;
+        }
+      }
+      return nullptr;
     }
 
     Entry * cells_;
