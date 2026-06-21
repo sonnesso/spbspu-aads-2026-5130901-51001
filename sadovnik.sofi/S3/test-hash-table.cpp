@@ -25,6 +25,7 @@ namespace
   };
 
   using StrTable = sadovnik::HashTable< std::string, int, ZeroHash, StrEq >;
+  using CollTab = sadovnik::HashTable< std::string, int, ZeroHash, StrEq >;
 
 }
 
@@ -114,4 +115,44 @@ BOOST_AUTO_TEST_CASE(hash_table_drop_existing_and_missing_keys)
   BOOST_CHECK(!tab.has("one"));
   BOOST_CHECK(tab.find("one") == nullptr);
   BOOST_CHECK_THROW(tab.get("one"), std::out_of_range);
+}
+
+BOOST_AUTO_TEST_CASE(hash_table_handles_bucket_collisions)
+{
+  CollTab tab(2, 2);
+
+  tab.add("a", 1);
+  tab.add("b", 2);
+  tab.add("c", 3);
+
+  BOOST_TEST(tab.get("a") == 1);
+  BOOST_TEST(tab.get("b") == 2);
+  BOOST_TEST(tab.get("c") == 3);
+  BOOST_TEST(tab.size() == 3);
+}
+
+BOOST_AUTO_TEST_CASE(hash_table_reports_overflow_when_full)
+{
+  CollTab tab(1, 2);
+
+  tab.add("a", 1);
+  tab.add("b", 2);
+  tab.add("c", 3);
+
+  BOOST_CHECK_THROW(tab.add("d", 4), std::overflow_error);
+  BOOST_CHECK_THROW(tab.set("new", 5), std::overflow_error);
+}
+
+BOOST_AUTO_TEST_CASE(hash_table_reuses_cell_after_drop)
+{
+  CollTab tab(1, 2);
+
+  tab.add("a", 1);
+  tab.add("b", 2);
+  BOOST_CHECK(tab.drop("a"));
+
+  BOOST_CHECK(tab.add("c", 3));
+  BOOST_TEST(tab.get("c") == 3);
+  BOOST_TEST(tab.get("b") == 2);
+  BOOST_TEST(tab.size() == 2);
 }
