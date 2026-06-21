@@ -91,3 +91,27 @@ BOOST_AUTO_TEST_CASE(hash_table_get_on_missing_key_throws)
   BOOST_CHECK(tab.find("missing") == nullptr);
   BOOST_CHECK_THROW(tab.get("missing"), std::out_of_range);
 }
+
+BOOST_AUTO_TEST_CASE(hash_table_set_replaces_or_inserts)
+{
+  StrTable tab(2);
+
+  BOOST_CHECK(tab.set("value", 1));
+  BOOST_CHECK(!tab.set("value", 2));
+
+  BOOST_TEST(tab.get("value") == 2);
+  BOOST_TEST(tab.size() == 1);
+}
+
+BOOST_AUTO_TEST_CASE(hash_table_drop_existing_and_missing_keys)
+{
+  StrTable tab(2);
+
+  tab.add("one", 1);
+
+  BOOST_CHECK(tab.drop("one"));
+  BOOST_CHECK(!tab.drop("one"));
+  BOOST_CHECK(!tab.has("one"));
+  BOOST_CHECK(tab.find("one") == nullptr);
+  BOOST_CHECK_THROW(tab.get("one"), std::out_of_range);
+}

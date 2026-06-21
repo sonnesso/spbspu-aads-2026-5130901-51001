@@ -151,6 +151,30 @@ namespace sadovnik
       return entry->val;
     }
 
+    bool set(const Key & key, const Value & val)
+    {
+      Entry * entry = findEntry(key);
+      if (entry != nullptr)
+      {
+        entry->val = val;
+        return false;
+      }
+      add(key, val);
+      return true;
+    }
+
+    bool drop(const Key & key)
+    {
+      Entry * entry = findEntry(key);
+      if (entry == nullptr)
+      {
+        return false;
+      }
+      entry->used = false;
+      --elemCnt_;
+      return true;
+    }
+
   private:
     static const std::size_t HOME_POS = 0;
 
