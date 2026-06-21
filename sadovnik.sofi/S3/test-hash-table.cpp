@@ -156,3 +156,79 @@ BOOST_AUTO_TEST_CASE(hash_table_reuses_cell_after_drop)
   BOOST_TEST(tab.get("b") == 2);
   BOOST_TEST(tab.size() == 2);
 }
+
+BOOST_AUTO_TEST_CASE(hash_table_iterator_visits_all_entries)
+{
+  StrTable tab(4);
+  tab.add("one", 1);
+  tab.add("two", 2);
+  tab.add("three", 3);
+
+  int sum = 0;
+  std::size_t count = 0;
+  for (StrTable::iterator it = tab.begin(); it != tab.end(); ++it)
+  {
+    sum += it->val;
+    ++count;
+  }
+
+  BOOST_TEST(count == 3);
+  BOOST_TEST(sum == 6);
+}
+
+BOOST_AUTO_TEST_CASE(hash_table_const_iterator_visits_all_entries)
+{
+  StrTable tab(4);
+  tab.add("one", 1);
+  tab.add("two", 2);
+  const StrTable & ctab = tab;
+
+  int sum = 0;
+  for (StrTable::const_iterator it = ctab.begin(); it != ctab.end(); ++it)
+  {
+    sum += it->val;
+  }
+
+  BOOST_TEST(sum == 3);
+}
+
+BOOST_AUTO_TEST_CASE(hash_table_iterator_skips_dropped_entries)
+{
+  StrTable tab(4);
+  tab.add("one", 1);
+  tab.add("two", 2);
+  tab.drop("one");
+
+  std::size_t count = 0;
+  for (StrTable::iterator it = tab.begin(); it != tab.end(); ++it)
+  {
+    BOOST_TEST(it->key != "one");
+    ++count;
+  }
+
+  BOOST_TEST(count == 1);
+}
+
+BOOST_AUTO_TEST_CASE(hash_table_rehash_preserves_elements)
+{
+  CollTab tab(1, 4);
+  tab.add("a", 1);
+  tab.add("b", 2);
+  tab.add("c", 3);
+
+  tab.rehash(4);
+
+  BOOST_TEST(tab.slots() == 4);
+  BOOST_TEST(tab.get("a") == 1);
+  BOOST_TEST(tab.get("b") == 2);
+  BOOST_TEST(tab.get("c") == 3);
+  BOOST_TEST(tab.size() == 3);
+}
+
+BOOST_AUTO_TEST_CASE(hash_table_rehash_rejects_bad_slot_count)
+{
+  StrTable tab(2);
+  tab.add("one", 1);
+
+  BOOST_CHECK_THROW(tab.rehash(0), std::invalid_argument);
+}
