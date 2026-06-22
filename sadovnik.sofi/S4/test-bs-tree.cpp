@@ -3,6 +3,7 @@
 #include <bs-tree.hpp>
 
 #include <functional>
+#include <stdexcept>
 #include <string>
 
 namespace
@@ -56,4 +57,54 @@ BOOST_AUTO_TEST_CASE(bs_tree_default_constructed_trees_are_independent)
 
   BOOST_CHECK(second.empty());
   BOOST_TEST(second.size() == 0);
+}
+
+BOOST_AUTO_TEST_CASE(bs_tree_push_and_get_store_values)
+{
+  IntStrTree tree;
+
+  tree.push(2, "two");
+  tree.push(1, "one");
+  tree.push(4, "four");
+
+  BOOST_CHECK(!tree.empty());
+  BOOST_TEST(tree.size() == 3);
+  BOOST_CHECK(tree.has(1));
+  BOOST_CHECK(tree.has(2));
+  BOOST_CHECK(tree.has(4));
+  BOOST_TEST(tree.get(1) == "one");
+  BOOST_TEST(tree.get(2) == "two");
+  BOOST_TEST(tree.get(4) == "four");
+}
+
+BOOST_AUTO_TEST_CASE(bs_tree_get_rejects_missing_key)
+{
+  IntStrTree tree;
+  tree.push(1, "one");
+
+  BOOST_CHECK(!tree.has(2));
+  BOOST_CHECK_THROW(tree.get(2), std::out_of_range);
+}
+
+BOOST_AUTO_TEST_CASE(bs_tree_push_rejects_duplicate_key)
+{
+  IntStrTree tree;
+  tree.push(1, "one");
+
+  BOOST_CHECK_THROW(tree.push(1, "another"), std::logic_error);
+  BOOST_TEST(tree.size() == 1);
+  BOOST_TEST(tree.get(1) == "one");
+}
+
+BOOST_AUTO_TEST_CASE(bs_tree_push_updates_height_and_begin)
+{
+  IntStrTree tree;
+
+  tree.push(2, "two");
+  BOOST_TEST(tree.height() == 1);
+  BOOST_CHECK(tree.begin() != tree.end());
+
+  tree.push(1, "one");
+  tree.push(4, "four");
+  BOOST_TEST(tree.height() == 2);
 }

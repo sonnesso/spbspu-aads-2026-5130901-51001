@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <iterator>
+#include <stdexcept>
 #include <utility>
 
 namespace sadovnik
@@ -209,7 +210,97 @@ namespace sadovnik
       return heightSub(it.node_);
     }
 
+    void push(const Key & key, const Value & val)
+    {
+      if (root_ == nullptr)
+      {
+        root_ = new detail::BSTNode< Key, Value >(key, val);
+        ++size_;
+        return;
+      }
+
+      detail::BSTNode< Key, Value > * cur = root_;
+      while (cur != nullptr)
+      {
+        if (keysEqual(key, cur->key))
+        {
+          throw std::logic_error("duplicate key");
+        }
+
+        if (cmp_(key, cur->key))
+        {
+          if (cur->left == nullptr)
+          {
+            cur->left = new detail::BSTNode< Key, Value >(key, val);
+            cur->left->parent = cur;
+            ++size_;
+            return;
+          }
+          cur = cur->left;
+        }
+        else
+        {
+          if (cur->right == nullptr)
+          {
+            cur->right = new detail::BSTNode< Key, Value >(key, val);
+            cur->right->parent = cur;
+            ++size_;
+            return;
+          }
+          cur = cur->right;
+        }
+      }
+    }
+
+    bool has(const Key & key) const noexcept
+    {
+      return findNode(key) != nullptr;
+    }
+
+    Value get(const Key & key) const
+    {
+      const detail::BSTNode< Key, Value > * node = findNode(key);
+      if (node == nullptr)
+      {
+        throw std::out_of_range("missing key");
+      }
+      return node->val;
+    }
+
   private:
+    bool keysEqual(const Key & lhs, const Key & rhs) const
+    {
+      return !cmp_(lhs, rhs) && !cmp_(rhs, lhs);
+    }
+
+    detail::BSTNode< Key, Value > * findNode(const Key & key) noexcept
+    {
+      return const_cast< detail::BSTNode< Key, Value > * >(
+        static_cast< const BSTree * >(this)->findNode(key));
+    }
+
+    const detail::BSTNode< Key, Value > * findNode(const Key & key) const noexcept
+    {
+      const detail::BSTNode< Key, Value > * cur = root_;
+      while (cur != nullptr)
+      {
+        if (keysEqual(key, cur->key))
+        {
+          return cur;
+        }
+
+        if (cmp_(key, cur->key))
+        {
+          cur = cur->left;
+        }
+        else
+        {
+          cur = cur->right;
+        }
+      }
+      return nullptr;
+    }
+
     static detail::BSTNode< Key, Value > * minNode(detail::BSTNode< Key, Value > * node)
     {
       if (node == nullptr)
