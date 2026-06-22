@@ -497,6 +497,64 @@ namespace sadovnik
       return result;
     }
 
+    const_iterator rotateLeft(const_iterator it)
+    {
+      detail::BSTNode< Key, Value > * rising =
+        const_cast< detail::BSTNode< Key, Value > * >(it.node_);
+      if (rising == nullptr || rising->parent == nullptr)
+      {
+        throw std::logic_error("cannot rotate left");
+      }
+
+      detail::BSTNode< Key, Value > * pivot = rising->parent;
+      if (pivot->right != rising)
+      {
+        throw std::logic_error("cannot rotate left");
+      }
+
+      detail::BSTNode< Key, Value > * leftChild = rising->left;
+      pivot->right = leftChild;
+      if (leftChild != nullptr)
+      {
+        leftChild->parent = pivot;
+      }
+
+      rising->left = pivot;
+      setChild(pivot->parent, pivot, rising);
+      pivot->parent = rising;
+
+      return const_iterator(rising, root_);
+    }
+
+    const_iterator rotateRight(const_iterator it)
+    {
+      detail::BSTNode< Key, Value > * rising =
+        const_cast< detail::BSTNode< Key, Value > * >(it.node_);
+      if (rising == nullptr || rising->parent == nullptr)
+      {
+        throw std::logic_error("cannot rotate right");
+      }
+
+      detail::BSTNode< Key, Value > * pivot = rising->parent;
+      if (pivot->left != rising)
+      {
+        throw std::logic_error("cannot rotate right");
+      }
+
+      detail::BSTNode< Key, Value > * rightChild = rising->right;
+      pivot->left = rightChild;
+      if (rightChild != nullptr)
+      {
+        rightChild->parent = pivot;
+      }
+
+      rising->right = pivot;
+      setChild(pivot->parent, pivot, rising);
+      pivot->parent = rising;
+
+      return const_iterator(rising, root_);
+    }
+
   private:
     bool keysEqual(const Key & lhs, const Key & rhs) const
     {
