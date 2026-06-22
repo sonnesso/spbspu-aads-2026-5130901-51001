@@ -108,3 +108,80 @@ BOOST_AUTO_TEST_CASE(bs_tree_push_updates_height_and_begin)
   tree.push(4, "four");
   BOOST_TEST(tree.height() == 2);
 }
+
+BOOST_AUTO_TEST_CASE(bs_tree_drop_leaf_returns_value)
+{
+  IntStrTree tree;
+  tree.push(2, "two");
+  tree.push(1, "one");
+  tree.push(4, "four");
+
+  BOOST_TEST(tree.drop(1) == "one");
+  BOOST_TEST(tree.size() == 2);
+  BOOST_CHECK(!tree.has(1));
+  BOOST_CHECK(tree.has(2));
+  BOOST_CHECK(tree.has(4));
+}
+
+BOOST_AUTO_TEST_CASE(bs_tree_drop_node_with_one_child)
+{
+  IntStrTree tree;
+  tree.push(2, "two");
+  tree.push(1, "one");
+  tree.push(4, "four");
+  tree.push(3, "three");
+
+  BOOST_TEST(tree.drop(4) == "four");
+  BOOST_CHECK(tree.has(3));
+  BOOST_CHECK(!tree.has(4));
+  BOOST_TEST(tree.get(3) == "three");
+}
+
+BOOST_AUTO_TEST_CASE(bs_tree_drop_node_with_two_children)
+{
+  IntStrTree tree;
+  tree.push(2, "two");
+  tree.push(1, "one");
+  tree.push(4, "four");
+  tree.push(3, "three");
+  tree.push(5, "five");
+
+  BOOST_TEST(tree.drop(2) == "two");
+  BOOST_CHECK(!tree.has(2));
+  BOOST_CHECK(tree.has(1));
+  BOOST_CHECK(tree.has(3));
+  BOOST_CHECK(tree.has(4));
+  BOOST_CHECK(tree.has(5));
+  BOOST_TEST(tree.get(3) == "three");
+}
+
+BOOST_AUTO_TEST_CASE(bs_tree_drop_rejects_missing_key)
+{
+  IntStrTree tree;
+  tree.push(1, "one");
+
+  BOOST_CHECK_THROW(tree.drop(2), std::out_of_range);
+  BOOST_TEST(tree.size() == 1);
+}
+
+BOOST_AUTO_TEST_CASE(bs_tree_drop_last_element_clears_tree)
+{
+  IntStrTree tree;
+  tree.push(1, "one");
+
+  BOOST_TEST(tree.drop(1) == "one");
+  BOOST_CHECK(tree.empty());
+  BOOST_TEST(tree.size() == 0);
+  BOOST_CHECK(tree.begin() == tree.end());
+  BOOST_TEST(tree.height() == 0);
+}
+
+BOOST_AUTO_TEST_CASE(bs_tree_drop_allows_reinserting_key)
+{
+  IntStrTree tree;
+  tree.push(1, "one");
+  tree.drop(1);
+
+  tree.push(1, "new-one");
+  BOOST_TEST(tree.get(1) == "new-one");
+}

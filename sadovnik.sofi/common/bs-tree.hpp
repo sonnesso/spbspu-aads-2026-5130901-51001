@@ -267,6 +267,20 @@ namespace sadovnik
       return node->val;
     }
 
+    Value drop(const Key & key)
+    {
+      detail::BSTNode< Key, Value > * node = findNode(key);
+      if (node == nullptr)
+      {
+        throw std::out_of_range("missing key");
+      }
+
+      const Value result = node->val;
+      dropNode(node);
+      --size_;
+      return result;
+    }
+
   private:
     bool keysEqual(const Key & lhs, const Key & rhs) const
     {
@@ -299,6 +313,50 @@ namespace sadovnik
         }
       }
       return nullptr;
+    }
+
+    void setChild(detail::BSTNode< Key, Value > * parent,
+                  detail::BSTNode< Key, Value > * oldNode,
+                  detail::BSTNode< Key, Value > * newNode)
+    {
+      if (parent == nullptr)
+      {
+        root_ = newNode;
+      }
+      else if (parent->left == oldNode)
+      {
+        parent->left = newNode;
+      }
+      else
+      {
+        parent->right = newNode;
+      }
+
+      if (newNode != nullptr)
+      {
+        newNode->parent = parent;
+      }
+    }
+
+    void dropNode(detail::BSTNode< Key, Value > * node)
+    {
+      if (node->left != nullptr && node->right != nullptr)
+      {
+        detail::BSTNode< Key, Value > * succ = minNode(node->right);
+        node->key = succ->key;
+        node->val = succ->val;
+
+        detail::BSTNode< Key, Value > * succParent = succ->parent;
+        detail::BSTNode< Key, Value > * succRight = succ->right;
+        setChild(succParent, succ, succRight);
+        delete succ;
+        return;
+      }
+
+      detail::BSTNode< Key, Value > * child =
+        node->left != nullptr ? node->left : node->right;
+      setChild(node->parent, node, child);
+      delete node;
     }
 
     static detail::BSTNode< Key, Value > * minNode(detail::BSTNode< Key, Value > * node)
