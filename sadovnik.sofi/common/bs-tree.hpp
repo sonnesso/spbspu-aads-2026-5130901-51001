@@ -416,6 +416,16 @@ namespace sadovnik
       return heightSub(it.node_);
     }
 
+    iterator find(const Key & key)
+    {
+      return iterator(findNode(key), root_);
+    }
+
+    const_iterator find(const Key & key) const
+    {
+      return const_iterator(findNode(key), root_);
+    }
+
     void push(const Key & key, const Value & val)
     {
       if (root_ == nullptr)

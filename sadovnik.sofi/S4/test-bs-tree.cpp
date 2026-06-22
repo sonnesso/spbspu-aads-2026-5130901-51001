@@ -261,3 +261,82 @@ BOOST_AUTO_TEST_CASE(bs_tree_iterator_dereference_end_throws)
   auto it = tree.end();
   BOOST_CHECK_THROW(*it, std::logic_error);
 }
+
+BOOST_AUTO_TEST_CASE(bs_tree_height_grows_on_skewed_insert)
+{
+  IntStrTree tree;
+  tree.push(1, "a");
+  tree.push(2, "b");
+  tree.push(3, "c");
+  tree.push(4, "d");
+  tree.push(5, "e");
+
+  BOOST_TEST(tree.height() == 5);
+}
+
+BOOST_AUTO_TEST_CASE(bs_tree_height_at_root_matches_tree_height)
+{
+  IntStrTree tree;
+  tree.push(2, "two");
+  tree.push(1, "one");
+  tree.push(4, "four");
+  tree.push(3, "three");
+  tree.push(5, "five");
+
+  const IntStrTree & view = tree;
+  const auto rootIt = view.find(2);
+  BOOST_REQUIRE(rootIt != view.cend());
+  BOOST_TEST(view.height(rootIt) == view.height());
+  BOOST_TEST(view.height() == 3);
+}
+
+BOOST_AUTO_TEST_CASE(bs_tree_height_at_internal_node_counts_subtree)
+{
+  IntStrTree tree;
+  tree.push(2, "two");
+  tree.push(1, "one");
+  tree.push(4, "four");
+  tree.push(3, "three");
+  tree.push(5, "five");
+
+  const IntStrTree & view = tree;
+  const auto nodeIt = view.find(4);
+  BOOST_REQUIRE(nodeIt != view.cend());
+  BOOST_TEST(view.height(nodeIt) == 2);
+}
+
+BOOST_AUTO_TEST_CASE(bs_tree_height_at_leaf_is_one)
+{
+  IntStrTree tree;
+  tree.push(2, "two");
+  tree.push(1, "one");
+  tree.push(4, "four");
+
+  const IntStrTree & view = tree;
+  const auto leafIt = view.find(1);
+  BOOST_REQUIRE(leafIt != view.cend());
+  BOOST_TEST(view.height(leafIt) == 1);
+}
+
+BOOST_AUTO_TEST_CASE(bs_tree_height_shrinks_after_drop)
+{
+  IntStrTree tree;
+  tree.push(1, "a");
+  tree.push(2, "b");
+  tree.push(3, "c");
+  tree.push(4, "d");
+
+  BOOST_TEST(tree.height() == 4);
+  tree.drop(1);
+  BOOST_TEST(tree.height() == 3);
+}
+
+BOOST_AUTO_TEST_CASE(bs_tree_find_returns_end_for_missing_key)
+{
+  IntStrTree tree;
+  tree.push(1, "one");
+
+  const IntStrTree & view = tree;
+  BOOST_CHECK(view.find(2) == view.cend());
+  BOOST_TEST(view.height(view.find(99)) == 0);
+}
