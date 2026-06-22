@@ -1,3 +1,7 @@
+#include "commands.hpp"
+#include "io.hpp"
+
+#include <fstream>
 #include <iostream>
 
 int main(int argc, char * argv[])
@@ -8,7 +12,25 @@ int main(int argc, char * argv[])
     return 1;
   }
 
-  (void)argv;
-  std::cerr << "S3 scaffold: graph loader is not implemented yet\n";
-  return 1;
+  std::ifstream file(argv[1]);
+  if (!file)
+  {
+    std::cerr << "cannot open file\n";
+    return 1;
+  }
+
+  try
+  {
+    sadovnik::GraphTab graphs = sadovnik::readGraphs(file);
+    sadovnik::CommandContext context(graphs);
+    const sadovnik::CommandTab commands = sadovnik::createCommandTable();
+    sadovnik::processCommands(context, commands, std::cin, std::cout);
+  }
+  catch (const std::exception & error)
+  {
+    std::cerr << error.what() << '\n';
+    return 2;
+  }
+
+  return 0;
 }
