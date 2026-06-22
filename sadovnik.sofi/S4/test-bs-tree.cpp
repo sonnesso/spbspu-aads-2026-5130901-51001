@@ -185,3 +185,79 @@ BOOST_AUTO_TEST_CASE(bs_tree_drop_allows_reinserting_key)
   tree.push(1, "new-one");
   BOOST_TEST(tree.get(1) == "new-one");
 }
+
+BOOST_AUTO_TEST_CASE(bs_tree_iterators_visit_keys_in_order)
+{
+  IntStrTree tree;
+  tree.push(2, "two");
+  tree.push(4, "four");
+  tree.push(1, "one");
+  tree.push(5, "five");
+  tree.push(3, "three");
+
+  int keys[] = {1, 2, 3, 4, 5};
+  std::size_t idx = 0;
+  for (auto it = tree.begin(); it != tree.end(); ++it)
+  {
+    BOOST_REQUIRE(idx < 5);
+    BOOST_TEST(it->first == keys[idx]);
+    ++idx;
+  }
+  BOOST_TEST(idx == 5);
+}
+
+BOOST_AUTO_TEST_CASE(bs_tree_const_iterators_visit_values_in_order)
+{
+  IntStrTree tree;
+  tree.push(3, "c");
+  tree.push(1, "a");
+  tree.push(2, "b");
+
+  const IntStrTree & view = tree;
+  const std::string vals[] = {"a", "b", "c"};
+  std::size_t idx = 0;
+  for (auto it = view.cbegin(); it != view.cend(); ++it)
+  {
+    BOOST_REQUIRE(idx < 3);
+    BOOST_TEST(it->second == vals[idx]);
+    ++idx;
+  }
+}
+
+BOOST_AUTO_TEST_CASE(bs_tree_iterator_dereference_reads_entry)
+{
+  IntStrTree tree;
+  tree.push(2, "two");
+
+  auto it = tree.begin();
+  BOOST_TEST(it->first == 2);
+  BOOST_TEST((*it).second == "two");
+}
+
+BOOST_AUTO_TEST_CASE(bs_tree_iterator_decrement_walks_backward)
+{
+  IntStrTree tree;
+  tree.push(1, "one");
+  tree.push(2, "two");
+  tree.push(3, "three");
+
+  auto it = tree.end();
+  --it;
+  BOOST_TEST(it->first == 3);
+
+  --it;
+  BOOST_TEST(it->first == 2);
+
+  --it;
+  BOOST_TEST(it->first == 1);
+  BOOST_CHECK(it == tree.begin());
+}
+
+BOOST_AUTO_TEST_CASE(bs_tree_iterator_dereference_end_throws)
+{
+  IntStrTree tree;
+  tree.push(1, "one");
+
+  auto it = tree.end();
+  BOOST_CHECK_THROW(*it, std::logic_error);
+}

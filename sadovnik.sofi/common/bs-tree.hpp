@@ -16,7 +16,133 @@ namespace sadovnik
   {
 
     template< class Key, class Value >
-    struct BSTNode;
+    struct BSTNode
+    {
+      Key key;
+      Value val;
+      BSTNode * left;
+      BSTNode * right;
+      BSTNode * parent;
+
+      BSTNode(const Key & keyVal, const Value & valueVal)
+        : key(keyVal),
+          val(valueVal),
+          left(nullptr),
+          right(nullptr),
+          parent(nullptr)
+      {
+      }
+    };
+
+    template< class Key, class Value >
+    BSTNode< Key, Value > * minNode(BSTNode< Key, Value > * node)
+    {
+      if (node == nullptr)
+      {
+        return nullptr;
+      }
+
+      while (node->left != nullptr)
+      {
+        node = node->left;
+      }
+      return node;
+    }
+
+    template< class Key, class Value >
+    const BSTNode< Key, Value > * minNode(const BSTNode< Key, Value > * node)
+    {
+      return minNode(const_cast< BSTNode< Key, Value > * >(node));
+    }
+
+    template< class Key, class Value >
+    BSTNode< Key, Value > * maxNode(BSTNode< Key, Value > * node)
+    {
+      if (node == nullptr)
+      {
+        return nullptr;
+      }
+
+      while (node->right != nullptr)
+      {
+        node = node->right;
+      }
+      return node;
+    }
+
+    template< class Key, class Value >
+    const BSTNode< Key, Value > * maxNode(const BSTNode< Key, Value > * node)
+    {
+      return maxNode(const_cast< BSTNode< Key, Value > * >(node));
+    }
+
+    template< class Key, class Value >
+    BSTNode< Key, Value > * nextInOrder(BSTNode< Key, Value > * node)
+    {
+      if (node == nullptr)
+      {
+        return nullptr;
+      }
+
+      if (node->right != nullptr)
+      {
+        return minNode(node->right);
+      }
+
+      BSTNode< Key, Value > * parent = node->parent;
+      while (parent != nullptr && node == parent->right)
+      {
+        node = parent;
+        parent = parent->parent;
+      }
+      return parent;
+    }
+
+    template< class Key, class Value >
+    const BSTNode< Key, Value > * nextInOrder(const BSTNode< Key, Value > * node)
+    {
+      return nextInOrder(const_cast< BSTNode< Key, Value > * >(node));
+    }
+
+    template< class Key, class Value >
+    BSTNode< Key, Value > * prevInOrder(BSTNode< Key, Value > * node)
+    {
+      if (node == nullptr)
+      {
+        return nullptr;
+      }
+
+      if (node->left != nullptr)
+      {
+        return maxNode(node->left);
+      }
+
+      BSTNode< Key, Value > * parent = node->parent;
+      while (parent != nullptr && node == parent->left)
+      {
+        node = parent;
+        parent = parent->parent;
+      }
+      return parent;
+    }
+
+    template< class Key, class Value >
+    const BSTNode< Key, Value > * prevInOrder(const BSTNode< Key, Value > * node)
+    {
+      return prevInOrder(const_cast< BSTNode< Key, Value > * >(node));
+    }
+
+    template< class Key, class Value >
+    void fillEntry(const BSTNode< Key, Value > * node, std::pair< Key, Value > & slot)
+    {
+      if (node == nullptr)
+      {
+        throw std::logic_error("dereference end iterator");
+      }
+
+      slot.first = node->key;
+      slot.second = node->val;
+    }
 
   }
 
@@ -39,8 +165,54 @@ namespace sadovnik
     using reference = value_type &;
 
     BSTIterator()
-      : node_(nullptr)
+      : node_(nullptr),
+        root_(nullptr)
     {
+    }
+
+    reference operator*() const
+    {
+      detail::fillEntry(node_, slot_);
+      return slot_;
+    }
+
+    pointer operator->() const
+    {
+      detail::fillEntry(node_, slot_);
+      return &slot_;
+    }
+
+    BSTIterator & operator++()
+    {
+      node_ = detail::nextInOrder(node_);
+      return *this;
+    }
+
+    BSTIterator operator++(int)
+    {
+      BSTIterator tmp = *this;
+      ++(*this);
+      return tmp;
+    }
+
+    BSTIterator & operator--()
+    {
+      if (node_ == nullptr)
+      {
+        node_ = detail::maxNode(root_);
+      }
+      else
+      {
+        node_ = detail::prevInOrder(node_);
+      }
+      return *this;
+    }
+
+    BSTIterator operator--(int)
+    {
+      BSTIterator tmp = *this;
+      --(*this);
+      return tmp;
     }
 
     bool operator==(const BSTIterator & other) const
@@ -54,12 +226,17 @@ namespace sadovnik
     }
 
   private:
-    explicit BSTIterator(detail::BSTNode< Key, Value > * node)
-      : node_(node)
+    explicit BSTIterator(detail::BSTNode< Key, Value > * node,
+                         detail::BSTNode< Key, Value > * root)
+      : node_(node),
+        root_(root),
+        slot_()
     {
     }
 
     detail::BSTNode< Key, Value > * node_;
+    detail::BSTNode< Key, Value > * root_;
+    mutable value_type slot_;
   };
 
   template< class Key, class Value >
@@ -78,13 +255,61 @@ namespace sadovnik
     using reference = const value_type &;
 
     BSTConstIterator()
-      : node_(nullptr)
+      : node_(nullptr),
+        root_(nullptr)
     {
     }
 
     BSTConstIterator(const BSTIterator< Key, Value > & it)
-      : node_(it.node_)
+      : node_(it.node_),
+        root_(it.root_),
+        slot_()
     {
+    }
+
+    reference operator*() const
+    {
+      detail::fillEntry(node_, slot_);
+      return slot_;
+    }
+
+    pointer operator->() const
+    {
+      detail::fillEntry(node_, slot_);
+      return &slot_;
+    }
+
+    BSTConstIterator & operator++()
+    {
+      node_ = detail::nextInOrder(node_);
+      return *this;
+    }
+
+    BSTConstIterator operator++(int)
+    {
+      BSTConstIterator tmp = *this;
+      ++(*this);
+      return tmp;
+    }
+
+    BSTConstIterator & operator--()
+    {
+      if (node_ == nullptr)
+      {
+        node_ = detail::maxNode(root_);
+      }
+      else
+      {
+        node_ = detail::prevInOrder(node_);
+      }
+      return *this;
+    }
+
+    BSTConstIterator operator--(int)
+    {
+      BSTConstIterator tmp = *this;
+      --(*this);
+      return tmp;
     }
 
     bool operator==(const BSTConstIterator & other) const
@@ -98,37 +323,18 @@ namespace sadovnik
     }
 
   private:
-    explicit BSTConstIterator(const detail::BSTNode< Key, Value > * node)
-      : node_(node)
+    explicit BSTConstIterator(const detail::BSTNode< Key, Value > * node,
+                              const detail::BSTNode< Key, Value > * root)
+      : node_(node),
+        root_(root),
+        slot_()
     {
     }
 
     const detail::BSTNode< Key, Value > * node_;
+    const detail::BSTNode< Key, Value > * root_;
+    mutable value_type slot_;
   };
-
-  namespace detail
-  {
-
-    template< class Key, class Value >
-    struct BSTNode
-    {
-      Key key;
-      Value val;
-      BSTNode * left;
-      BSTNode * right;
-      BSTNode * parent;
-
-      BSTNode(const Key & keyVal, const Value & valueVal)
-        : key(keyVal),
-          val(valueVal),
-          left(nullptr),
-          right(nullptr),
-          parent(nullptr)
-      {
-      }
-    };
-
-  }
 
   template< class Key, class Value, class Compare >
   class BSTree
@@ -168,22 +374,22 @@ namespace sadovnik
 
     iterator begin()
     {
-      return iterator(minNode(root_));
+      return iterator(detail::minNode(root_), root_);
     }
 
     iterator end()
     {
-      return iterator(nullptr);
+      return iterator(nullptr, root_);
     }
 
     const_iterator begin() const
     {
-      return const_iterator(minNode(root_));
+      return const_iterator(detail::minNode(root_), root_);
     }
 
     const_iterator end() const
     {
-      return const_iterator(nullptr);
+      return const_iterator(nullptr, root_);
     }
 
     const_iterator cbegin() const
@@ -342,7 +548,7 @@ namespace sadovnik
     {
       if (node->left != nullptr && node->right != nullptr)
       {
-        detail::BSTNode< Key, Value > * succ = minNode(node->right);
+        detail::BSTNode< Key, Value > * succ = detail::minNode(node->right);
         node->key = succ->key;
         node->val = succ->val;
 
@@ -357,20 +563,6 @@ namespace sadovnik
         node->left != nullptr ? node->left : node->right;
       setChild(node->parent, node, child);
       delete node;
-    }
-
-    static detail::BSTNode< Key, Value > * minNode(detail::BSTNode< Key, Value > * node)
-    {
-      if (node == nullptr)
-      {
-        return nullptr;
-      }
-
-      while (node->left != nullptr)
-      {
-        node = node->left;
-      }
-      return node;
     }
 
     static void destroySub(detail::BSTNode< Key, Value > * node)
