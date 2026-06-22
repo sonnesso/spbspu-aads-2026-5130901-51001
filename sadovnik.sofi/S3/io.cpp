@@ -1,5 +1,7 @@
 #include "io.hpp"
 
+#include <string-utils.hpp>
+
 #include <istream>
 #include <limits>
 #include <stdexcept>
@@ -7,98 +9,6 @@
 
 namespace
 {
-
-  bool isLetter(char ch)
-  {
-    return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z');
-  }
-
-  bool isDigit(char ch)
-  {
-    return ch >= '0' && ch <= '9';
-  }
-
-  bool isSpace(char ch)
-  {
-    return ch == ' ' || ch == '\t' || ch == '\r';
-  }
-
-  bool isValidName(const std::string & value)
-  {
-    if (value.empty() || !isLetter(value[0]))
-    {
-      return false;
-    }
-
-    for (std::size_t i = 1; i < value.size(); ++i)
-    {
-      if (!isLetter(value[i]) && !isDigit(value[i]))
-      {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  sadovnik::List< std::string > splitTokens(const std::string & line)
-  {
-    sadovnik::List< std::string > tokens;
-    std::size_t pos = 0;
-
-    while (pos < line.size())
-    {
-      while (pos < line.size() && isSpace(line[pos]))
-      {
-        ++pos;
-      }
-
-      const std::size_t start = pos;
-      while (pos < line.size() && !isSpace(line[pos]))
-      {
-        ++pos;
-      }
-
-      if (start != pos)
-      {
-        tokens.pushBack(line.substr(start, pos - start));
-      }
-    }
-
-    return tokens;
-  }
-
-  bool parseUnsigned(const std::string & value, unsigned long long & result)
-  {
-    if (value.empty())
-    {
-      return false;
-    }
-
-    unsigned long long parsed = 0;
-    const unsigned long long limit =
-      std::numeric_limits< unsigned long long >::max();
-
-    for (std::size_t i = 0; i < value.size(); ++i)
-    {
-      if (!isDigit(value[i]))
-      {
-        return false;
-      }
-
-      const unsigned long long digit =
-        static_cast< unsigned long long >(value[i] - '0');
-      if (parsed > (limit - digit) / 10)
-      {
-        return false;
-      }
-
-      parsed = parsed * 10 + digit;
-    }
-
-    result = parsed;
-    return true;
-  }
 
   std::string tokenAt(const sadovnik::List< std::string > & tokens, std::size_t index)
   {
@@ -128,7 +38,7 @@ namespace
       {
         return false;
       }
-      if (!splitTokens(line).empty())
+      if (!sadovnik::splitTokens(line).empty())
       {
         return true;
       }
@@ -142,7 +52,7 @@ namespace
   std::size_t parseCount(const std::string & token)
   {
     unsigned long long value = 0;
-    if (!parseUnsigned(token, value) ||
+    if (!sadovnik::parseUnsigned(token, value) ||
         value > std::numeric_limits< std::size_t >::max())
     {
       throw std::logic_error("invalid graph file");
