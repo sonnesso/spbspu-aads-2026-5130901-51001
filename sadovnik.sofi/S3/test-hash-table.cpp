@@ -232,3 +232,64 @@ BOOST_AUTO_TEST_CASE(hash_table_rehash_rejects_bad_slot_count)
 
   BOOST_CHECK_THROW(tab.rehash(0), std::invalid_argument);
 }
+
+BOOST_AUTO_TEST_CASE(hash_table_copy_is_independent)
+{
+  StrTable src(4);
+  src.add("one", 1);
+  src.add("two", 2);
+
+  StrTable copy(src);
+  copy.set("one", 10);
+  copy.add("three", 3);
+
+  BOOST_TEST(src.get("one") == 1);
+  BOOST_TEST(src.size() == 2);
+  BOOST_CHECK(!src.has("three"));
+  BOOST_TEST(copy.get("one") == 10);
+  BOOST_TEST(copy.get("three") == 3);
+}
+
+BOOST_AUTO_TEST_CASE(hash_table_copy_assignment_is_independent)
+{
+  StrTable src(4);
+  src.add("one", 1);
+
+  StrTable dst(2);
+  dst.add("old", 99);
+  dst = src;
+  dst.set("one", 10);
+
+  BOOST_TEST(src.get("one") == 1);
+  BOOST_CHECK(!src.has("old"));
+  BOOST_TEST(dst.get("one") == 10);
+}
+
+BOOST_AUTO_TEST_CASE(hash_table_move_transfers_entries)
+{
+  StrTable src(4);
+  src.add("one", 1);
+  src.add("two", 2);
+
+  StrTable moved(std::move(src));
+
+  BOOST_TEST(moved.get("one") == 1);
+  BOOST_TEST(moved.get("two") == 2);
+  BOOST_TEST(moved.size() == 2);
+  BOOST_CHECK(src.empty());
+  BOOST_TEST(src.size() == 0);
+}
+
+BOOST_AUTO_TEST_CASE(hash_table_move_assignment_transfers_entries)
+{
+  StrTable src(4);
+  src.add("one", 1);
+
+  StrTable dst(2);
+  dst.add("old", 99);
+  dst = std::move(src);
+
+  BOOST_TEST(dst.get("one") == 1);
+  BOOST_CHECK(!dst.has("old"));
+  BOOST_CHECK(src.empty());
+}

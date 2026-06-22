@@ -52,6 +52,64 @@ namespace sadovnik
       delete[] cells_;
     }
 
+    HashTable(const HashTable & other)
+      : cells_(new Entry[other.capacity()]),
+        slotCnt_(other.slotCnt_),
+        bktSize_(other.bktSize_),
+        elemCnt_(other.elemCnt_),
+        hash_(other.hash_),
+        equal_(other.equal_)
+    {
+      for (std::size_t i = 0; i < capacity(); ++i)
+      {
+        cells_[i] = other.cells_[i];
+      }
+    }
+
+    HashTable(HashTable && other) noexcept
+      : cells_(other.cells_),
+        slotCnt_(other.slotCnt_),
+        bktSize_(other.bktSize_),
+        elemCnt_(other.elemCnt_),
+        hash_(std::move(other.hash_)),
+        equal_(std::move(other.equal_))
+    {
+      other.cells_ = nullptr;
+      other.slotCnt_ = 0;
+      other.bktSize_ = 0;
+      other.elemCnt_ = 0;
+    }
+
+    HashTable & operator=(const HashTable & other)
+    {
+      if (this != &other)
+      {
+        HashTable tmp(other);
+        swap(tmp);
+      }
+      return *this;
+    }
+
+    HashTable & operator=(HashTable && other) noexcept
+    {
+      if (this != &other)
+      {
+        delete[] cells_;
+        cells_ = other.cells_;
+        slotCnt_ = other.slotCnt_;
+        bktSize_ = other.bktSize_;
+        elemCnt_ = other.elemCnt_;
+        hash_ = std::move(other.hash_);
+        equal_ = std::move(other.equal_);
+
+        other.cells_ = nullptr;
+        other.slotCnt_ = 0;
+        other.bktSize_ = 0;
+        other.elemCnt_ = 0;
+      }
+      return *this;
+    }
+
     void clear() noexcept
     {
       for (std::size_t i = 0; i < capacity(); ++i)
@@ -458,6 +516,13 @@ namespace sadovnik
     Hash hash_;
     Equal equal_;
   };
+
+  template< class Key, class Value, class Hash, class Equal >
+  void swap(HashTable< Key, Value, Hash, Equal > & lhs,
+            HashTable< Key, Value, Hash, Equal > & rhs) noexcept
+  {
+    lhs.swap(rhs);
+  }
 
 }
 
