@@ -555,6 +555,46 @@ namespace sadovnik
       return const_iterator(rising, root_);
     }
 
+    const_iterator rotateLargeLeft(const_iterator it)
+    {
+      detail::BSTNode< Key, Value > * rising =
+        const_cast< detail::BSTNode< Key, Value > * >(it.node_);
+      if (rising == nullptr || rising->parent == nullptr)
+      {
+        throw std::logic_error("cannot rotate large left");
+      }
+
+      detail::BSTNode< Key, Value > * parent = rising->parent;
+      if (parent->right != rising || parent->parent == nullptr
+          || parent->parent->left != parent)
+      {
+        throw std::logic_error("cannot rotate large left");
+      }
+
+      const_iterator afterFirst = rotateLeft(it);
+      return rotateRight(afterFirst);
+    }
+
+    const_iterator rotateLargeRight(const_iterator it)
+    {
+      detail::BSTNode< Key, Value > * rising =
+        const_cast< detail::BSTNode< Key, Value > * >(it.node_);
+      if (rising == nullptr || rising->parent == nullptr)
+      {
+        throw std::logic_error("cannot rotate large right");
+      }
+
+      detail::BSTNode< Key, Value > * parent = rising->parent;
+      if (parent->left != rising || parent->parent == nullptr
+          || parent->parent->right != parent)
+      {
+        throw std::logic_error("cannot rotate large right");
+      }
+
+      const_iterator afterFirst = rotateRight(it);
+      return rotateLeft(afterFirst);
+    }
+
   private:
     bool keysEqual(const Key & lhs, const Key & rhs) const
     {
