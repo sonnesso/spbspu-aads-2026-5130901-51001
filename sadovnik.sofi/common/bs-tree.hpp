@@ -350,6 +350,56 @@ namespace sadovnik
     {
     }
 
+    BSTree(const BSTree & other)
+      : root_(nullptr),
+        size_(0),
+        cmp_(other.cmp_)
+    {
+      try
+      {
+        root_ = cloneSub(other.root_);
+        size_ = other.size_;
+      }
+      catch (...)
+      {
+        clear();
+        throw;
+      }
+    }
+
+    BSTree(BSTree && other) noexcept
+      : root_(other.root_),
+        size_(other.size_),
+        cmp_(std::move(other.cmp_))
+    {
+      other.root_ = nullptr;
+      other.size_ = 0;
+    }
+
+    BSTree & operator=(const BSTree & other)
+    {
+      if (this != &other)
+      {
+        BSTree tmp(other);
+        swap(tmp);
+      }
+      return *this;
+    }
+
+    BSTree & operator=(BSTree && other) noexcept
+    {
+      if (this != &other)
+      {
+        clear();
+        root_ = other.root_;
+        size_ = other.size_;
+        cmp_ = std::move(other.cmp_);
+        other.root_ = nullptr;
+        other.size_ = 0;
+      }
+      return *this;
+    }
+
     ~BSTree()
     {
       clear();
@@ -595,6 +645,21 @@ namespace sadovnik
       return rotateLeft(afterFirst);
     }
 
+    void swap(BSTree & other) noexcept
+    {
+      detail::BSTNode< Key, Value > * tmpRoot = root_;
+      root_ = other.root_;
+      other.root_ = tmpRoot;
+
+      std::size_t tmpSize = size_;
+      size_ = other.size_;
+      other.size_ = tmpSize;
+
+      Compare tmpCmp = std::move(cmp_);
+      cmp_ = std::move(other.cmp_);
+      other.cmp_ = std::move(tmpCmp);
+    }
+
   private:
     bool keysEqual(const Key & lhs, const Key & rhs) const
     {
@@ -685,6 +750,41 @@ namespace sadovnik
       delete node;
     }
 
+    static detail::BSTNode< Key, Value > * cloneSub(
+      const detail::BSTNode< Key, Value > * node)
+    {
+      if (node == nullptr)
+      {
+        return nullptr;
+      }
+
+      detail::BSTNode< Key, Value > * copy =
+        new detail::BSTNode< Key, Value >(node->key, node->val);
+      try
+      {
+        copy->left = cloneSub(node->left);
+        if (copy->left != nullptr)
+        {
+          copy->left->parent = copy;
+        }
+
+        copy->right = cloneSub(node->right);
+        if (copy->right != nullptr)
+        {
+          copy->right->parent = copy;
+        }
+      }
+      catch (...)
+      {
+        destroySub(copy->left);
+        destroySub(copy->right);
+        delete copy;
+        throw;
+      }
+
+      return copy;
+    }
+
     static std::size_t heightSub(const detail::BSTNode< Key, Value > * node)
     {
       if (node == nullptr)
@@ -702,6 +802,13 @@ namespace sadovnik
     std::size_t size_;
     Compare cmp_;
   };
+
+  template< class Key, class Value, class Compare >
+  void swap(BSTree< Key, Value, Compare > & lhs,
+            BSTree< Key, Value, Compare > & rhs) noexcept
+  {
+    lhs.swap(rhs);
+  }
 
 }
 
