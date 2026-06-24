@@ -113,7 +113,20 @@ namespace
       return false;
     }
 
+    context.session().addTyreName(name);
     context.session().markDirty();
+    return true;
+  }
+
+  bool showTyresCmd(CommandContext & context, const List< std::string > & tokens,
+                    std::ostream & out)
+  {
+    if (tokens.size() != 1)
+    {
+      return false;
+    }
+
+    sadovnik::printTyres(context.session(), out);
     return true;
   }
 
@@ -146,7 +159,7 @@ namespace sadovnik
     commands.add("simulate", stubCmd);
     commands.add("compare", stubCmd);
     commands.add("optimal-pit-window", stubCmd);
-    commands.add("show-tyres", stubCmd);
+    commands.add("show-tyres", showTyresCmd);
     commands.add("list-strategies", stubCmd);
     commands.add("del-strategy", stubCmd);
     commands.add("save-session", stubCmd);

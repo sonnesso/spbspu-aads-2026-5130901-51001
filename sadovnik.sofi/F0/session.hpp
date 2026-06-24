@@ -3,6 +3,10 @@
 
 #include "session-tab.hpp"
 
+#include <list.hpp>
+
+#include <string>
+
 namespace sadovnik
 {
 
@@ -27,6 +31,9 @@ namespace sadovnik
     TyreTab & tyres();
     const TyreTab & tyres() const;
 
+    void addTyreName(const std::string & name);
+    const List< std::string > & tyreNames() const;
+
     StrategyTab & strategies();
     const StrategyTab & strategies() const;
 
@@ -38,6 +45,7 @@ namespace sadovnik
     unsigned humidity_;
     bool dirty_;
     TyreTab tyres_;
+    List< std::string > tyre_names_;
     StrategyTab strategies_;
   };
 

@@ -70,6 +70,16 @@ namespace sadovnik
     return tyres_;
   }
 
+  void Session::addTyreName(const std::string & name)
+  {
+    tyre_names_.pushBack(name);
+  }
+
+  const List< std::string > & Session::tyreNames() const
+  {
+    return tyre_names_;
+  }
+
   StrategyTab & Session::strategies()
   {
     return strategies_;

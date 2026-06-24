@@ -2,6 +2,8 @@
 
 #include <string-utils.hpp>
 
+#include <iomanip>
+#include <ostream>
 #include <string>
 
 namespace
@@ -124,6 +126,88 @@ namespace sadovnik
     spec.pit_time = pit_time;
     spec.base_offset = baseOffsetForTyre(kind, compound);
     return true;
+  }
+
+  void sortTyreNames(List< std::string > & names)
+  {
+    if (names.empty())
+    {
+      return;
+    }
+
+    List< std::string > sorted;
+    for (auto it = names.begin(); it != names.end(); ++it)
+    {
+      std::string cur = *it;
+      List< std::string > next;
+      bool placed = false;
+
+      for (auto sit = sorted.begin(); sit != sorted.end(); ++sit)
+      {
+        if (!placed && cur < *sit)
+        {
+          next.pushBack(cur);
+          placed = true;
+        }
+        next.pushBack(*sit);
+      }
+
+      if (!placed)
+      {
+        next.pushBack(cur);
+      }
+
+      sorted = next;
+    }
+
+    names = sorted;
+  }
+
+  void writeOffset(std::ostream & out, double offset)
+  {
+    out << "offset=";
+    if (offset > 0.0)
+    {
+      out << '+';
+    }
+    out << std::fixed << std::setprecision(1) << offset;
+  }
+
+  void writeTyreLine(std::ostream & out, const std::string & name,
+                     const TyreSpec & spec)
+  {
+    out << name << ": type=" << tyreKindToString(spec.kind);
+    if (!spec.compound.empty())
+    {
+      out << ", compound=" << spec.compound;
+    }
+    out << std::fixed << std::setprecision(2);
+    out << ", degr=" << spec.degr;
+    out << ", max_laps=" << spec.max_laps;
+    out << ", pit=" << spec.pit_time << 's';
+    out << ", ";
+    writeOffset(out, spec.base_offset);
+    out << '\n';
+  }
+
+  void printTyres(const Session & session, std::ostream & out)
+  {
+    out << "Tyres:\n";
+
+    List< std::string > names;
+    for (auto it = session.tyreNames().begin(); it != session.tyreNames().end();
+         ++it)
+    {
+      names.pushBack(*it);
+    }
+
+    sortTyreNames(names);
+
+    for (auto it = names.begin(); it != names.end(); ++it)
+    {
+      const TyreSpec & spec = session.tyres().get(*it);
+      writeTyreLine(out, *it, spec);
+    }
   }
 
 }
