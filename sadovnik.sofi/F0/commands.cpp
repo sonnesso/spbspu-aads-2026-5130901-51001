@@ -4,7 +4,6 @@
 
 #include <iomanip>
 #include <istream>
-#include <sstream>
 #include <string>
 
 namespace
@@ -28,18 +27,6 @@ namespace
     }
 
     throw std::logic_error("missing token");
-  }
-
-  bool parseDouble(const std::string & value, double & result)
-  {
-    if (value.empty())
-    {
-      return false;
-    }
-
-    std::istringstream input(value);
-    input >> result;
-    return !input.fail() && input.eof();
   }
 
   bool parsePositiveUnsigned(const std::string & value, unsigned & result)
@@ -71,7 +58,7 @@ namespace
     unsigned laps = 0;
     double base_lap_s = 90.0;
 
-    if (!parseDouble(tokenAt(tokens, 1), length_km) || length_km <= 0.0)
+    if (!sadovnik::parseDouble(tokenAt(tokens, 1), length_km) || length_km <= 0.0)
     {
       return false;
     }
@@ -83,7 +70,7 @@ namespace
 
     if (tokens.size() == 4)
     {
-      if (!parseDouble(tokenAt(tokens, 3), base_lap_s) || base_lap_s <= 0.0)
+      if (!sadovnik::parseDouble(tokenAt(tokens, 3), base_lap_s) || base_lap_s <= 0.0)
       {
         return false;
       }

@@ -3,6 +3,9 @@
 
 #include "session.hpp"
 
+#include <hash-functions.hpp>
+#include <hash-table.hpp>
+
 #include <functional>
 #include <iosfwd>
 #include <string>
