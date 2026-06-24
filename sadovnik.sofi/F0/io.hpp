@@ -9,6 +9,7 @@
 namespace sadovnik
 {
 
+  bool hasDatExtension(const std::string & filename);
   void writeSession(const Session & session, const std::string & filename);
   Session readSession(const std::string & filename);
 
