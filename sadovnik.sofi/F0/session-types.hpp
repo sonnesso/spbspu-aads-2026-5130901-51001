@@ -74,6 +74,14 @@ namespace sadovnik
     }
   };
 
+  bool parseTyreKind(const std::string & text, TyreKind & kind);
+  const char * tyreKindToString(TyreKind kind);
+
+  bool parseWeather(const std::string & text, Weather & weather);
+  const char * weatherToString(Weather weather);
+
+  const char * humidityTrend(unsigned percent);
+
 }
 
 #endif
