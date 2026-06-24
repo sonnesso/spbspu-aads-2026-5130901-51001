@@ -5,7 +5,7 @@
   Text .dat format (version 1), space-separated tokens per line:
 
   F0_SESSION 1
-  track <length_km> <laps> <base_lap_s>
+  track <length_km> <laps> <base_lap_s>   (length_km may be 0)
   weather <dry|damp|wet> <humidity_percent>
   tyre <name> <type> <degr> <max_laps> <pit_time> [<compound>]
   strategy <name> <tyre1> <laps1> [<tyre2> <laps2> ...]

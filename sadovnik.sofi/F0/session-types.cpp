@@ -1,5 +1,8 @@
 #include "session-types.hpp"
 
+#include <iomanip>
+#include <ostream>
+
 namespace sadovnik
 {
 
@@ -153,6 +156,20 @@ namespace sadovnik
     }
 
     return "stable";
+  }
+
+  void printTrackSetLine(const TrackSpec & track, std::ostream & out)
+  {
+    out << std::fixed << std::setprecision(3);
+    if (track.length_km > 0.0)
+    {
+      out << "Track set: " << track.length_km << " km, " << track.laps
+          << " laps, base lap " << track.base_lap_s << " s\n";
+      return;
+    }
+
+    out << "Track set: " << track.laps << " laps, base lap "
+        << track.base_lap_s << " s\n";
   }
 
 }

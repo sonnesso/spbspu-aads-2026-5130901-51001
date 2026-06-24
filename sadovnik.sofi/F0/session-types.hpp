@@ -3,6 +3,8 @@
 
 #include <string>
 
+#include <iosfwd>
+
 namespace sadovnik
 {
 
@@ -84,6 +86,8 @@ namespace sadovnik
   const char * weatherToString(Weather weather);
 
   const char * humidityTrend(unsigned percent);
+
+  void printTrackSetLine(const TrackSpec & track, std::ostream & out);
 
 }
 

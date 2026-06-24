@@ -53,38 +53,30 @@ namespace
   bool setTrackCmd(CommandContext & context, const List< std::string > & tokens,
                    std::ostream & out)
   {
-    if (tokens.size() < 3 || tokens.size() > 4)
+    if (tokens.size() < 2 || tokens.size() > 3)
     {
       return false;
     }
 
-    double length_km = 0.0;
     unsigned laps = 0;
     double base_lap_s = 90.0;
 
-    if (!sadovnik::parseDouble(tokenAt(tokens, 1), length_km) || length_km <= 0.0)
+    if (!parsePositiveUnsigned(tokenAt(tokens, 1), laps))
     {
       return false;
     }
 
-    if (!parsePositiveUnsigned(tokenAt(tokens, 2), laps))
+    if (tokens.size() == 3)
     {
-      return false;
-    }
-
-    if (tokens.size() == 4)
-    {
-      if (!sadovnik::parseDouble(tokenAt(tokens, 3), base_lap_s) || base_lap_s <= 0.0)
+      if (!sadovnik::parseDouble(tokenAt(tokens, 2), base_lap_s) ||
+          base_lap_s <= 0.0)
       {
         return false;
       }
     }
 
-    context.session().setTrack(length_km, laps, base_lap_s);
-
-    out << std::fixed << std::setprecision(3);
-    out << "Track set: " << length_km << " km, " << laps << " laps, base lap "
-        << base_lap_s << " s\n";
+    context.session().setTrack(0.0, laps, base_lap_s);
+    sadovnik::printTrackSetLine(context.session().track(), out);
     return true;
   }
 
