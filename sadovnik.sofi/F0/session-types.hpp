@@ -77,6 +77,9 @@ namespace sadovnik
   bool parseTyreKind(const std::string & text, TyreKind & kind);
   const char * tyreKindToString(TyreKind kind);
 
+  bool parseCompound(const std::string & text, std::string & compound);
+  double baseOffsetForTyre(TyreKind kind, const std::string & compound);
+
   bool parseWeather(const std::string & text, Weather & weather);
   const char * weatherToString(Weather weather);
 

@@ -1,5 +1,7 @@
 #include "commands.hpp"
 
+#include "session-types.hpp"
+
 #include <string-utils.hpp>
 
 #include <iomanip>
@@ -11,6 +13,8 @@ namespace
 
   using sadovnik::CommandContext;
   using sadovnik::List;
+  using sadovnik::TyreKind;
+  using sadovnik::TyreSpec;
 
   const char INVALID_COMMAND[] = "<INVALID COMMAND>";
 
@@ -84,6 +88,75 @@ namespace
     return true;
   }
 
+  bool addTyreCmd(CommandContext & context, const List< std::string > & tokens,
+                  std::ostream &)
+  {
+    if (tokens.size() != 6 && tokens.size() != 7)
+    {
+      return false;
+    }
+
+    const std::string name = tokenAt(tokens, 1);
+    if (!sadovnik::isValidName(name))
+    {
+      return false;
+    }
+
+    TyreKind kind = TyreKind::Slick;
+    if (!sadovnik::parseTyreKind(tokenAt(tokens, 2), kind))
+    {
+      return false;
+    }
+
+    double degr = 0.0;
+    if (!sadovnik::parseDouble(tokenAt(tokens, 3), degr) || degr < 0.0)
+    {
+      return false;
+    }
+
+    unsigned max_laps = 0;
+    unsigned pit_time = 0;
+    if (!parsePositiveUnsigned(tokenAt(tokens, 4), max_laps))
+    {
+      return false;
+    }
+    if (!parsePositiveUnsigned(tokenAt(tokens, 5), pit_time))
+    {
+      return false;
+    }
+
+    std::string compound;
+    if (tokens.size() == 7)
+    {
+      if (kind != TyreKind::Slick)
+      {
+        return false;
+      }
+      if (!sadovnik::parseCompound(tokenAt(tokens, 6), compound))
+      {
+        return false;
+      }
+    }
+
+    sadovnik::TyreTab & tyres = context.session().tyres();
+    if (tyres.has(name))
+    {
+      return false;
+    }
+
+    TyreSpec spec;
+    spec.kind = kind;
+    spec.compound = compound;
+    spec.degr = degr;
+    spec.max_laps = max_laps;
+    spec.pit_time = pit_time;
+    spec.base_offset = sadovnik::baseOffsetForTyre(kind, compound);
+
+    tyres.add(name, spec);
+    context.session().markDirty();
+    return true;
+  }
+
 }
 
 namespace sadovnik
@@ -108,7 +181,7 @@ namespace sadovnik
   {
     CommandTab commands(32, 4);
     commands.add("set-track", setTrackCmd);
-    commands.add("add-tyre", stubCmd);
+    commands.add("add-tyre", addTyreCmd);
     commands.add("create-strategy", stubCmd);
     commands.add("simulate", stubCmd);
     commands.add("compare", stubCmd);
