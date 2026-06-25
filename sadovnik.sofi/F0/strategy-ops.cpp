@@ -284,6 +284,68 @@ namespace sadovnik
     return true;
   }
 
+  bool isStrategyComparable(const Session & session, const std::string & name,
+                            const List< Stint > * & stints)
+  {
+    if (!session.strategies().has(name))
+    {
+      return false;
+    }
+
+    stints = &session.strategies().get(name);
+    return strategyValidationError(session, *stints).empty();
+  }
+
+  void writeCompareStrategyLine(const std::string & name, double seconds,
+                                const List< Stint > & stints, std::ostream & out)
+  {
+    out << std::fixed << std::setprecision(1);
+    out << name << ": " << seconds << " s";
+    if (stints.size() >= 2)
+    {
+      const unsigned pit_lap = stints.begin()->laps;
+      out << " (pit after lap " << pit_lap << ')';
+    }
+    out << '\n';
+  }
+
+  void writeCompareBestLine(const std::string & best_name, double delta_s,
+                            std::ostream & out)
+  {
+    out << std::fixed << std::setprecision(1);
+    out << "Best: " << best_name << " (faster by " << delta_s << " s)\n";
+  }
+
+  bool compareTwoStrategies(const Session & session, const std::string & name1,
+                            const std::string & name2, std::ostream & out)
+  {
+    const List< Stint > * stints1 = nullptr;
+    const List< Stint > * stints2 = nullptr;
+    if (!isStrategyComparable(session, name1, stints1) ||
+        !isStrategyComparable(session, name2, stints2))
+    {
+      return false;
+    }
+
+    const double time1 = strategyRaceTime(session, *stints1);
+    const double time2 = strategyRaceTime(session, *stints2);
+
+    writeCompareStrategyLine(name1, time1, *stints1, out);
+    writeCompareStrategyLine(name2, time2, *stints2, out);
+
+    const double delta_s = time1 > time2 ? time1 - time2 : time2 - time1;
+    if (time2 < time1)
+    {
+      writeCompareBestLine(name2, delta_s, out);
+    }
+    else
+    {
+      writeCompareBestLine(name1, delta_s, out);
+    }
+
+    return true;
+  }
+
   void printStrategyCreatedLine(const std::string & name,
                                 const List< Stint > & stints, std::ostream & out)
   {
