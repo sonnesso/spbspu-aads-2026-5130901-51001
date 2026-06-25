@@ -1,11 +1,11 @@
 #include "commands.hpp"
 
 #include "session-types.hpp"
+#include "strategy-ops.hpp"
 #include "tyre-ops.hpp"
 
 #include <string-utils.hpp>
 
-#include <iomanip>
 #include <istream>
 #include <string>
 
@@ -14,6 +14,8 @@ namespace
 
   using sadovnik::CommandContext;
   using sadovnik::List;
+  using sadovnik::Stint;
+  using sadovnik::StrategyTab;
   using sadovnik::TyreSpec;
 
   const char INVALID_COMMAND[] = "<INVALID COMMAND>";
@@ -122,6 +124,36 @@ namespace
     return true;
   }
 
+  bool createStrategyCmd(CommandContext & context,
+                         const List< std::string > & tokens, std::ostream & out)
+  {
+    std::string name;
+    List< Stint > stints;
+    if (!sadovnik::parseCreateStrategyTokens(tokens, name, stints))
+    {
+      return false;
+    }
+
+    StrategyTab & strategies = context.session().strategies();
+    if (strategies.has(name))
+    {
+      return false;
+    }
+
+    try
+    {
+      strategies.add(name, stints);
+    }
+    catch (const std::exception &)
+    {
+      return false;
+    }
+
+    context.session().markDirty();
+    sadovnik::printStrategyCreatedLine(name, stints, out);
+    return true;
+  }
+
 }
 
 namespace sadovnik
@@ -147,7 +179,7 @@ namespace sadovnik
     CommandTab commands(32, 4);
     commands.add("set-track", setTrackCmd);
     commands.add("add-tyre", addTyreCmd);
-    commands.add("create-strategy", stubCmd);
+    commands.add("create-strategy", createStrategyCmd);
     commands.add("simulate", stubCmd);
     commands.add("compare", stubCmd);
     commands.add("optimal-pit-window", stubCmd);
