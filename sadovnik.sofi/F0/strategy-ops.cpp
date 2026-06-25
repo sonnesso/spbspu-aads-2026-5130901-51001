@@ -1,7 +1,10 @@
 #include "strategy-ops.hpp"
 
+#include "tyre-math.hpp"
+
 #include <string-utils.hpp>
 
+#include <iomanip>
 #include <ostream>
 #include <string>
 
@@ -206,6 +209,43 @@ namespace sadovnik
     }
 
     printStrategyValidLine(name, session.weather(), out);
+    return true;
+  }
+
+  void writeApproxDuration(double seconds, std::ostream & out)
+  {
+    const unsigned long long whole_secs =
+      static_cast< unsigned long long >(seconds);
+    const unsigned long long hours = whole_secs / 3600;
+    const unsigned long long rem = whole_secs % 3600;
+    const unsigned mins = static_cast< unsigned >(rem / 60);
+    const unsigned secs = static_cast< unsigned >(rem % 60);
+
+    out << "approx " << hours << 'h' << ' ' << mins << 'm' << ' ' << secs
+        << 's';
+  }
+
+  void printSimulateTotalLine(const std::string & name, double seconds,
+                              std::ostream & out)
+  {
+    out << std::fixed << std::setprecision(1);
+    out << "Strategy \"" << name << "\" total time: " << seconds
+        << " seconds (";
+    writeApproxDuration(seconds, out);
+    out << ")\n";
+  }
+
+  bool simulateStrategy(const Session & session, const std::string & name,
+                        std::ostream & out)
+  {
+    if (!session.strategies().has(name))
+    {
+      return false;
+    }
+
+    const List< Stint > & stints = session.strategies().get(name);
+    const double total = strategyRaceTime(session, stints);
+    printSimulateTotalLine(name, total, out);
     return true;
   }
 

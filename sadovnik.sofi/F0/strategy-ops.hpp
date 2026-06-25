@@ -24,6 +24,8 @@ namespace sadovnik
                       std::ostream & out);
   bool validateStrategy(const Session & session, const std::string & name,
                         std::ostream & out);
+  bool simulateStrategy(const Session & session, const std::string & name,
+                        std::ostream & out);
 
 }
 

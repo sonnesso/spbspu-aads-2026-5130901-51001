@@ -5,10 +5,14 @@
 
 #include "session.hpp"
 
+#include <list.hpp>
+
 namespace sadovnik
 {
 
   double lapTime(const Session & session, const Stint & stint, unsigned lap_index);
+  double stintTotalTime(const Session & session, const Stint & stint);
+  double strategyRaceTime(const Session & session, const List< Stint > & stints);
 
 }
 

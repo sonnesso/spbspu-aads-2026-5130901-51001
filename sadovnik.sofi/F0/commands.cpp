@@ -206,6 +206,23 @@ namespace
     return sadovnik::validateStrategy(context.session(), name, out);
   }
 
+  bool simulateCmd(CommandContext & context, const List< std::string > & tokens,
+                   std::ostream & out)
+  {
+    if (tokens.size() != 2)
+    {
+      return false;
+    }
+
+    const std::string name = tokenAt(tokens, 1);
+    if (!sadovnik::isValidName(name))
+    {
+      return false;
+    }
+
+    return sadovnik::simulateStrategy(context.session(), name, out);
+  }
+
 }
 
 namespace sadovnik
@@ -232,7 +249,7 @@ namespace sadovnik
     commands.add("set-track", setTrackCmd);
     commands.add("add-tyre", addTyreCmd);
     commands.add("create-strategy", createStrategyCmd);
-    commands.add("simulate", stubCmd);
+    commands.add("simulate", simulateCmd);
     commands.add("compare", stubCmd);
     commands.add("optimal-pit-window", stubCmd);
     commands.add("show-tyres", showTyresCmd);
