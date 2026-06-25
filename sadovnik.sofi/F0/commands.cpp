@@ -226,19 +226,23 @@ namespace
   bool compareCmd(CommandContext & context, const List< std::string > & tokens,
                   std::ostream & out)
   {
-    if (tokens.size() != 3)
+    if (tokens.size() < 3)
     {
       return false;
     }
 
-    const std::string name1 = tokenAt(tokens, 1);
-    const std::string name2 = tokenAt(tokens, 2);
-    if (!sadovnik::isValidName(name1) || !sadovnik::isValidName(name2))
+    List< std::string > names;
+    for (std::size_t pos = 1; pos < tokens.size(); ++pos)
     {
-      return false;
+      const std::string name = tokenAt(tokens, pos);
+      if (!sadovnik::isValidName(name))
+      {
+        return false;
+      }
+      names.pushBack(name);
     }
 
-    return sadovnik::compareTwoStrategies(context.session(), name1, name2, out);
+    return sadovnik::compareStrategies(context.session(), names, out);
   }
 
 }

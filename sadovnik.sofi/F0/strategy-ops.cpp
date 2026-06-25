@@ -129,6 +129,34 @@ namespace
     return std::string();
   }
 
+  bool hasStrategyName(const List< std::string > & names,
+                       const std::string & name)
+  {
+    for (auto it = names.begin(); it != names.end(); ++it)
+    {
+      if (*it == name)
+      {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  struct CompareEntry
+  {
+    std::string name;
+    double time;
+    const List< Stint > * stints;
+
+    CompareEntry()
+      : name(),
+        time(0.0),
+        stints(nullptr)
+    {
+    }
+  };
+
 }
 
 namespace sadovnik
@@ -316,33 +344,69 @@ namespace sadovnik
     out << "Best: " << best_name << " (faster by " << delta_s << " s)\n";
   }
 
-  bool compareTwoStrategies(const Session & session, const std::string & name1,
-                            const std::string & name2, std::ostream & out)
+  bool compareStrategies(const Session & session,
+                         const List< std::string > & names, std::ostream & out)
   {
-    const List< Stint > * stints1 = nullptr;
-    const List< Stint > * stints2 = nullptr;
-    if (!isStrategyComparable(session, name1, stints1) ||
-        !isStrategyComparable(session, name2, stints2))
+    if (names.size() < 2)
     {
       return false;
     }
 
-    const double time1 = strategyRaceTime(session, *stints1);
-    const double time2 = strategyRaceTime(session, *stints2);
-
-    writeCompareStrategyLine(name1, time1, *stints1, out);
-    writeCompareStrategyLine(name2, time2, *stints2, out);
-
-    const double delta_s = time1 > time2 ? time1 - time2 : time2 - time1;
-    if (time2 < time1)
+    List< std::string > seen;
+    for (auto it = names.begin(); it != names.end(); ++it)
     {
-      writeCompareBestLine(name2, delta_s, out);
-    }
-    else
-    {
-      writeCompareBestLine(name1, delta_s, out);
+      if (hasStrategyName(seen, *it))
+      {
+        return false;
+      }
+      seen.pushBack(*it);
     }
 
+    List< CompareEntry > entries;
+    for (auto it = names.begin(); it != names.end(); ++it)
+    {
+      const List< Stint > * stints = nullptr;
+      if (!isStrategyComparable(session, *it, stints))
+      {
+        return false;
+      }
+
+      CompareEntry entry;
+      entry.name = *it;
+      entry.stints = stints;
+      entry.time = strategyRaceTime(session, *stints);
+      entries.pushBack(entry);
+    }
+
+    for (auto it = entries.begin(); it != entries.end(); ++it)
+    {
+      writeCompareStrategyLine(it->name, it->time, *it->stints, out);
+    }
+
+    const CompareEntry * best = nullptr;
+    const CompareEntry * runner_up = nullptr;
+    for (auto it = entries.begin(); it != entries.end(); ++it)
+    {
+      if (best == nullptr || it->time < best->time)
+      {
+        runner_up = best;
+        best = &(*it);
+        continue;
+      }
+
+      if (runner_up == nullptr || it->time < runner_up->time)
+      {
+        runner_up = &(*it);
+      }
+    }
+
+    double delta_s = 0.0;
+    if (runner_up != nullptr)
+    {
+      delta_s = runner_up->time - best->time;
+    }
+
+    writeCompareBestLine(best->name, delta_s, out);
     return true;
   }
 
