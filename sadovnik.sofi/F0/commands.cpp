@@ -134,6 +134,11 @@ namespace
       return false;
     }
 
+    if (!sadovnik::isCreateStrategyStintsValid(context.session(), stints))
+    {
+      return false;
+    }
+
     StrategyTab & strategies = context.session().strategies();
     if (strategies.has(name))
     {

@@ -84,6 +84,28 @@ namespace sadovnik
     return true;
   }
 
+  bool isCreateStrategyStintsValid(const Session & session,
+                                   const List< Stint > & stints)
+  {
+    if (!session.track().is_set)
+    {
+      return false;
+    }
+
+    unsigned total_laps = 0;
+    for (auto it = stints.begin(); it != stints.end(); ++it)
+    {
+      if (!session.tyres().has(it->tyre_name))
+      {
+        return false;
+      }
+
+      total_laps += it->laps;
+    }
+
+    return total_laps == session.track().laps;
+  }
+
   void printStrategyCreatedLine(const std::string & name,
                                 const List< Stint > & stints, std::ostream & out)
   {

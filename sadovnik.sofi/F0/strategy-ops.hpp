@@ -3,6 +3,8 @@
 
 #include "session-types.hpp"
 
+#include "session.hpp"
+
 #include <list.hpp>
 
 #include <iosfwd>
@@ -13,6 +15,8 @@ namespace sadovnik
 
   bool parseCreateStrategyTokens(const List< std::string > & tokens,
                                  std::string & name, List< Stint > & stints);
+  bool isCreateStrategyStintsValid(const Session & session,
+                                   const List< Stint > & stints);
   void printStrategyCreatedLine(const std::string & name,
                                 const List< Stint > & stints, std::ostream & out);
 
