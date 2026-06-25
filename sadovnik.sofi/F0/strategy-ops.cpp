@@ -235,6 +235,35 @@ namespace sadovnik
     out << ")\n";
   }
 
+  void printSimulateStintLines(const Session & session,
+                               const List< Stint > & stints, std::ostream & out)
+  {
+    out << std::fixed << std::setprecision(1);
+
+    unsigned stint_num = 1;
+    unsigned race_lap = 1;
+    bool first_stint = true;
+    for (auto it = stints.begin(); it != stints.end(); ++it)
+    {
+      if (!first_stint)
+      {
+        const TyreSpec & tyre = session.tyres().get(it->tyre_name);
+        out << "Pit stop: " << tyre.pit_time << " s\n";
+      }
+      first_stint = false;
+
+      const unsigned start_lap = race_lap;
+      const unsigned end_lap = race_lap + it->laps - 1;
+      const double stint_time = stintTotalTime(session, *it);
+
+      out << "Stint " << stint_num << ' ' << it->tyre_name << " (laps "
+          << start_lap << '-' << end_lap << "): " << stint_time << " s\n";
+
+      race_lap = end_lap + 1;
+      ++stint_num;
+    }
+  }
+
   bool simulateStrategy(const Session & session, const std::string & name,
                         std::ostream & out)
   {
@@ -244,6 +273,7 @@ namespace sadovnik
     }
 
     const List< Stint > & stints = session.strategies().get(name);
+    printSimulateStintLines(session, stints, out);
     const double total = strategyRaceTime(session, stints);
     printSimulateTotalLine(name, total, out);
     return true;
