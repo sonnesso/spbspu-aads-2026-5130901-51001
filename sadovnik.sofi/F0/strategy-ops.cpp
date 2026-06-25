@@ -157,6 +157,153 @@ namespace
     }
   };
 
+  bool stintsHaveSameTyrePlan(const List< Stint > & left,
+                              const List< Stint > & right)
+  {
+    if (left.size() != right.size())
+    {
+      return false;
+    }
+
+    auto left_it = left.begin();
+    auto right_it = right.begin();
+    for (; left_it != left.end(); ++left_it, ++right_it)
+    {
+      if (left_it->tyre_name != right_it->tyre_name)
+      {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  bool differOnlyByFirstPitLap(const List< Stint > & left,
+                               const List< Stint > & right)
+  {
+    if (left.size() != 2 || right.size() != 2)
+    {
+      return false;
+    }
+
+    if (!stintsHaveSameTyrePlan(left, right))
+    {
+      return false;
+    }
+
+    return left.begin()->laps != right.begin()->laps;
+  }
+
+  List< Stint > buildTwoStintStrategy(const std::string & tyre1,
+                                      const std::string & tyre2,
+                                      unsigned first_laps, unsigned total_laps)
+  {
+    List< Stint > stints;
+    stints.pushBack(Stint(tyre1, first_laps));
+    stints.pushBack(Stint(tyre2, total_laps - first_laps));
+    return stints;
+  }
+
+  bool isPitLapFaster(const sadovnik::Session & session,
+                      const std::string & tyre1, const std::string & tyre2,
+                      unsigned pit_lap, unsigned total_laps, double ref_time)
+  {
+    if (pit_lap == 0 || pit_lap >= total_laps)
+    {
+      return false;
+    }
+
+    const List< Stint > stints =
+      buildTwoStintStrategy(tyre1, tyre2, pit_lap, total_laps);
+    if (!strategyValidationError(session, stints).empty())
+    {
+      return false;
+    }
+
+    return strategyRaceTime(session, stints) < ref_time;
+  }
+
+  bool tryWriteUndercutWindow(const sadovnik::Session & session,
+                              const List< Stint > & left,
+                              const List< Stint > & right, std::ostream & out)
+  {
+    if (!differOnlyByFirstPitLap(left, right))
+    {
+      return false;
+    }
+
+    const unsigned pit_left = left.begin()->laps;
+    const unsigned pit_right = right.begin()->laps;
+    const unsigned ref_lap =
+      (pit_left > pit_right ? pit_left : pit_right) + 1;
+    const unsigned total_laps = session.track().laps;
+    if (ref_lap >= total_laps)
+    {
+      return false;
+    }
+
+    const std::string tyre1 = left.begin()->tyre_name;
+    auto second_it = left.begin();
+    ++second_it;
+    const std::string tyre2 = second_it->tyre_name;
+
+    const List< Stint > ref_stints =
+      buildTwoStintStrategy(tyre1, tyre2, ref_lap, total_laps);
+    if (!strategyValidationError(session, ref_stints).empty())
+    {
+      return false;
+    }
+
+    const double ref_time = strategyRaceTime(session, ref_stints);
+
+    unsigned win_lo = 0;
+    unsigned win_hi = 0;
+    bool any = false;
+    for (unsigned pit_lap = 1; pit_lap < total_laps; ++pit_lap)
+    {
+      if (!isPitLapFaster(session, tyre1, tyre2, pit_lap, total_laps,
+                          ref_time))
+      {
+        continue;
+      }
+
+      if (!any)
+      {
+        win_lo = pit_lap;
+        win_hi = pit_lap;
+        any = true;
+        continue;
+      }
+
+      if (pit_lap < win_lo)
+      {
+        win_lo = pit_lap;
+      }
+      if (pit_lap > win_hi)
+      {
+        win_hi = pit_lap;
+      }
+    }
+
+    if (!any)
+    {
+      return false;
+    }
+
+    for (unsigned pit_lap = win_lo; pit_lap <= win_hi; ++pit_lap)
+    {
+      if (!isPitLapFaster(session, tyre1, tyre2, pit_lap, total_laps,
+                          ref_time))
+      {
+        return false;
+      }
+    }
+
+    out << "Undercut window: pit on laps " << win_lo << '-' << win_hi
+        << " faster than lap " << ref_lap << '\n';
+    return true;
+  }
+
 }
 
 namespace sadovnik
@@ -407,6 +554,15 @@ namespace sadovnik
     }
 
     writeCompareBestLine(best->name, delta_s, out);
+
+    if (names.size() == 2)
+    {
+      auto first = entries.begin();
+      auto second = entries.begin();
+      ++second;
+      tryWriteUndercutWindow(session, *first->stints, *second->stints, out);
+    }
+
     return true;
   }
 
