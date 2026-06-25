@@ -22,6 +22,8 @@ namespace sadovnik
   void printStrategies(const Session & session, std::ostream & out);
   bool deleteStrategy(Session & session, const std::string & name,
                       std::ostream & out);
+  bool validateStrategy(const Session & session, const std::string & name,
+                        std::ostream & out);
 
 }
 

@@ -87,6 +87,45 @@ namespace
     return keys.size() >= 2;
   }
 
+  std::string strategyValidationError(const sadovnik::Session & session,
+                                      const List< Stint > & stints)
+  {
+    if (!session.track().is_set)
+    {
+      return "track not set";
+    }
+
+    unsigned total_laps = 0;
+    for (auto it = stints.begin(); it != stints.end(); ++it)
+    {
+      if (!session.tyres().has(it->tyre_name))
+      {
+        return "tyre not found";
+      }
+
+      const TyreSpec & spec = session.tyres().get(it->tyre_name);
+      if (it->laps > spec.max_laps)
+      {
+        return "tyre limits exceeded";
+      }
+
+      total_laps += it->laps;
+    }
+
+    if (total_laps != session.track().laps)
+    {
+      return "laps mismatch";
+    }
+
+    if (session.weather() == sadovnik::Weather::Dry &&
+        !hasEnoughSlickCompoundsForDry(session, stints))
+    {
+      return "must use at least 2 slick compounds in dry race";
+    }
+
+    return std::string();
+  }
+
 }
 
 namespace sadovnik
@@ -136,33 +175,37 @@ namespace sadovnik
   bool isCreateStrategyStintsValid(const Session & session,
                                    const List< Stint > & stints)
   {
-    if (!session.track().is_set)
+    return strategyValidationError(session, stints).empty();
+  }
+
+  void printStrategyValidLine(const std::string & name, Weather weather,
+                              std::ostream & out)
+  {
+    out << "Strategy \"" << name << "\" is valid: laps OK";
+    if (weather == Weather::Dry)
+    {
+      out << ", 2 slick compounds";
+    }
+    out << ", tyre limits OK\n";
+  }
+
+  bool validateStrategy(const Session & session, const std::string & name,
+                        std::ostream & out)
+  {
+    if (!session.strategies().has(name))
     {
       return false;
     }
 
-    unsigned total_laps = 0;
-    for (auto it = stints.begin(); it != stints.end(); ++it)
+    const List< Stint > & stints = session.strategies().get(name);
+    const std::string error = strategyValidationError(session, stints);
+    if (!error.empty())
     {
-      if (!session.tyres().has(it->tyre_name))
-      {
-        return false;
-      }
-
-      total_laps += it->laps;
+      out << "Strategy \"" << name << "\" is invalid: " << error << '\n';
+      return true;
     }
 
-    if (total_laps != session.track().laps)
-    {
-      return false;
-    }
-
-    if (session.weather() == Weather::Dry &&
-        !hasEnoughSlickCompoundsForDry(session, stints))
-    {
-      return false;
-    }
-
+    printStrategyValidLine(name, session.weather(), out);
     return true;
   }
 

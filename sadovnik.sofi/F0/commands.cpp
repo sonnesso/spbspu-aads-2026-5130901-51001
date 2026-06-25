@@ -189,6 +189,23 @@ namespace
     return sadovnik::deleteStrategy(context.session(), name, out);
   }
 
+  bool validateCmd(CommandContext & context, const List< std::string > & tokens,
+                   std::ostream & out)
+  {
+    if (tokens.size() != 2)
+    {
+      return false;
+    }
+
+    const std::string name = tokenAt(tokens, 1);
+    if (!sadovnik::isValidName(name))
+    {
+      return false;
+    }
+
+    return sadovnik::validateStrategy(context.session(), name, out);
+  }
+
 }
 
 namespace sadovnik
@@ -225,7 +242,7 @@ namespace sadovnik
     commands.add("load-session", stubCmd);
     commands.add("load-session-force", stubCmd);
     commands.add("load-preset", stubCmd);
-    commands.add("validate", stubCmd);
+    commands.add("validate", validateCmd);
     commands.add("suggest-strategies", stubCmd);
     commands.add("set-weather", stubCmd);
     commands.add("set-hum", stubCmd);
