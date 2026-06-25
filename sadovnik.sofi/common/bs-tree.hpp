@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <iterator>
+#include <stdexcept>
 #include <utility>
 
 namespace sadovnik
@@ -10,100 +11,6 @@ namespace sadovnik
 
   template< class Key, class Value, class Compare >
   class BSTree;
-
-  namespace detail
-  {
-
-    template< class Key, class Value >
-    struct BSTNode;
-
-  }
-
-  template< class Key, class Value >
-  class BSTConstIterator;
-
-  template< class Key, class Value >
-  class BSTIterator
-  {
-    template< class K, class V, class C >
-    friend class BSTree;
-
-    friend class BSTConstIterator< Key, Value >;
-
-  public:
-    using iterator_category = std::bidirectional_iterator_tag;
-    using value_type = std::pair< Key, Value >;
-    using difference_type = std::ptrdiff_t;
-    using pointer = value_type *;
-    using reference = value_type &;
-
-    BSTIterator()
-      : node_(nullptr)
-    {
-    }
-
-    bool operator==(const BSTIterator & other) const
-    {
-      return node_ == other.node_;
-    }
-
-    bool operator!=(const BSTIterator & other) const
-    {
-      return !(*this == other);
-    }
-
-  private:
-    explicit BSTIterator(detail::BSTNode< Key, Value > * node)
-      : node_(node)
-    {
-    }
-
-    detail::BSTNode< Key, Value > * node_;
-  };
-
-  template< class Key, class Value >
-  class BSTConstIterator
-  {
-    template< class K, class V, class C >
-    friend class BSTree;
-
-    friend class BSTIterator< Key, Value >;
-
-  public:
-    using iterator_category = std::bidirectional_iterator_tag;
-    using value_type = std::pair< Key, Value >;
-    using difference_type = std::ptrdiff_t;
-    using pointer = const value_type *;
-    using reference = const value_type &;
-
-    BSTConstIterator()
-      : node_(nullptr)
-    {
-    }
-
-    BSTConstIterator(const BSTIterator< Key, Value > & it)
-      : node_(it.node_)
-    {
-    }
-
-    bool operator==(const BSTConstIterator & other) const
-    {
-      return node_ == other.node_;
-    }
-
-    bool operator!=(const BSTConstIterator & other) const
-    {
-      return !(*this == other);
-    }
-
-  private:
-    explicit BSTConstIterator(const detail::BSTNode< Key, Value > * node)
-      : node_(node)
-    {
-    }
-
-    const detail::BSTNode< Key, Value > * node_;
-  };
 
   namespace detail
   {
@@ -127,7 +34,307 @@ namespace sadovnik
       }
     };
 
+    template< class Key, class Value >
+    BSTNode< Key, Value > * minNode(BSTNode< Key, Value > * node)
+    {
+      if (node == nullptr)
+      {
+        return nullptr;
+      }
+
+      while (node->left != nullptr)
+      {
+        node = node->left;
+      }
+      return node;
+    }
+
+    template< class Key, class Value >
+    const BSTNode< Key, Value > * minNode(const BSTNode< Key, Value > * node)
+    {
+      return minNode(const_cast< BSTNode< Key, Value > * >(node));
+    }
+
+    template< class Key, class Value >
+    BSTNode< Key, Value > * maxNode(BSTNode< Key, Value > * node)
+    {
+      if (node == nullptr)
+      {
+        return nullptr;
+      }
+
+      while (node->right != nullptr)
+      {
+        node = node->right;
+      }
+      return node;
+    }
+
+    template< class Key, class Value >
+    const BSTNode< Key, Value > * maxNode(const BSTNode< Key, Value > * node)
+    {
+      return maxNode(const_cast< BSTNode< Key, Value > * >(node));
+    }
+
+    template< class Key, class Value >
+    BSTNode< Key, Value > * nextInOrder(BSTNode< Key, Value > * node)
+    {
+      if (node == nullptr)
+      {
+        return nullptr;
+      }
+
+      if (node->right != nullptr)
+      {
+        return minNode(node->right);
+      }
+
+      BSTNode< Key, Value > * parent = node->parent;
+      while (parent != nullptr && node == parent->right)
+      {
+        node = parent;
+        parent = parent->parent;
+      }
+      return parent;
+    }
+
+    template< class Key, class Value >
+    const BSTNode< Key, Value > * nextInOrder(const BSTNode< Key, Value > * node)
+    {
+      return nextInOrder(const_cast< BSTNode< Key, Value > * >(node));
+    }
+
+    template< class Key, class Value >
+    BSTNode< Key, Value > * prevInOrder(BSTNode< Key, Value > * node)
+    {
+      if (node == nullptr)
+      {
+        return nullptr;
+      }
+
+      if (node->left != nullptr)
+      {
+        return maxNode(node->left);
+      }
+
+      BSTNode< Key, Value > * parent = node->parent;
+      while (parent != nullptr && node == parent->left)
+      {
+        node = parent;
+        parent = parent->parent;
+      }
+      return parent;
+    }
+
+    template< class Key, class Value >
+    const BSTNode< Key, Value > * prevInOrder(const BSTNode< Key, Value > * node)
+    {
+      return prevInOrder(const_cast< BSTNode< Key, Value > * >(node));
+    }
+
+    template< class Key, class Value >
+    void fillEntry(const BSTNode< Key, Value > * node, std::pair< Key, Value > & slot)
+    {
+      if (node == nullptr)
+      {
+        throw std::logic_error("dereference end iterator");
+      }
+
+      slot.first = node->key;
+      slot.second = node->val;
+    }
+
   }
+
+  template< class Key, class Value >
+  class BSTConstIterator;
+
+  template< class Key, class Value >
+  class BSTIterator
+  {
+    template< class K, class V, class C >
+    friend class BSTree;
+
+    friend class BSTConstIterator< Key, Value >;
+
+  public:
+    using iterator_category = std::bidirectional_iterator_tag;
+    using value_type = std::pair< Key, Value >;
+    using difference_type = std::ptrdiff_t;
+    using pointer = value_type *;
+    using reference = value_type &;
+
+    BSTIterator()
+      : node_(nullptr),
+        root_(nullptr)
+    {
+    }
+
+    reference operator*() const
+    {
+      detail::fillEntry(node_, slot_);
+      return slot_;
+    }
+
+    pointer operator->() const
+    {
+      detail::fillEntry(node_, slot_);
+      return &slot_;
+    }
+
+    BSTIterator & operator++()
+    {
+      node_ = detail::nextInOrder(node_);
+      return *this;
+    }
+
+    BSTIterator operator++(int)
+    {
+      BSTIterator tmp = *this;
+      ++(*this);
+      return tmp;
+    }
+
+    BSTIterator & operator--()
+    {
+      if (node_ == nullptr)
+      {
+        node_ = detail::maxNode(root_);
+      }
+      else
+      {
+        node_ = detail::prevInOrder(node_);
+      }
+      return *this;
+    }
+
+    BSTIterator operator--(int)
+    {
+      BSTIterator tmp = *this;
+      --(*this);
+      return tmp;
+    }
+
+    bool operator==(const BSTIterator & other) const
+    {
+      return node_ == other.node_;
+    }
+
+    bool operator!=(const BSTIterator & other) const
+    {
+      return !(*this == other);
+    }
+
+  private:
+    explicit BSTIterator(detail::BSTNode< Key, Value > * node,
+                         detail::BSTNode< Key, Value > * root)
+      : node_(node),
+        root_(root),
+        slot_()
+    {
+    }
+
+    detail::BSTNode< Key, Value > * node_;
+    detail::BSTNode< Key, Value > * root_;
+    mutable value_type slot_;
+  };
+
+  template< class Key, class Value >
+  class BSTConstIterator
+  {
+    template< class K, class V, class C >
+    friend class BSTree;
+
+    friend class BSTIterator< Key, Value >;
+
+  public:
+    using iterator_category = std::bidirectional_iterator_tag;
+    using value_type = std::pair< Key, Value >;
+    using difference_type = std::ptrdiff_t;
+    using pointer = const value_type *;
+    using reference = const value_type &;
+
+    BSTConstIterator()
+      : node_(nullptr),
+        root_(nullptr)
+    {
+    }
+
+    BSTConstIterator(const BSTIterator< Key, Value > & it)
+      : node_(it.node_),
+        root_(it.root_),
+        slot_()
+    {
+    }
+
+    reference operator*() const
+    {
+      detail::fillEntry(node_, slot_);
+      return slot_;
+    }
+
+    pointer operator->() const
+    {
+      detail::fillEntry(node_, slot_);
+      return &slot_;
+    }
+
+    BSTConstIterator & operator++()
+    {
+      node_ = detail::nextInOrder(node_);
+      return *this;
+    }
+
+    BSTConstIterator operator++(int)
+    {
+      BSTConstIterator tmp = *this;
+      ++(*this);
+      return tmp;
+    }
+
+    BSTConstIterator & operator--()
+    {
+      if (node_ == nullptr)
+      {
+        node_ = detail::maxNode(root_);
+      }
+      else
+      {
+        node_ = detail::prevInOrder(node_);
+      }
+      return *this;
+    }
+
+    BSTConstIterator operator--(int)
+    {
+      BSTConstIterator tmp = *this;
+      --(*this);
+      return tmp;
+    }
+
+    bool operator==(const BSTConstIterator & other) const
+    {
+      return node_ == other.node_;
+    }
+
+    bool operator!=(const BSTConstIterator & other) const
+    {
+      return !(*this == other);
+    }
+
+  private:
+    explicit BSTConstIterator(const detail::BSTNode< Key, Value > * node,
+                              const detail::BSTNode< Key, Value > * root)
+      : node_(node),
+        root_(root),
+        slot_()
+    {
+    }
+
+    const detail::BSTNode< Key, Value > * node_;
+    const detail::BSTNode< Key, Value > * root_;
+    mutable value_type slot_;
+  };
 
   template< class Key, class Value, class Compare >
   class BSTree
@@ -141,6 +348,56 @@ namespace sadovnik
         size_(0),
         cmp_()
     {
+    }
+
+    BSTree(const BSTree & other)
+      : root_(nullptr),
+        size_(0),
+        cmp_(other.cmp_)
+    {
+      try
+      {
+        root_ = cloneSub(other.root_);
+        size_ = other.size_;
+      }
+      catch (...)
+      {
+        clear();
+        throw;
+      }
+    }
+
+    BSTree(BSTree && other) noexcept
+      : root_(other.root_),
+        size_(other.size_),
+        cmp_(std::move(other.cmp_))
+    {
+      other.root_ = nullptr;
+      other.size_ = 0;
+    }
+
+    BSTree & operator=(const BSTree & other)
+    {
+      if (this != &other)
+      {
+        BSTree tmp(other);
+        swap(tmp);
+      }
+      return *this;
+    }
+
+    BSTree & operator=(BSTree && other) noexcept
+    {
+      if (this != &other)
+      {
+        clear();
+        root_ = other.root_;
+        size_ = other.size_;
+        cmp_ = std::move(other.cmp_);
+        other.root_ = nullptr;
+        other.size_ = 0;
+      }
+      return *this;
     }
 
     ~BSTree()
@@ -167,22 +424,22 @@ namespace sadovnik
 
     iterator begin()
     {
-      return iterator(minNode(root_));
+      return iterator(detail::minNode(root_), root_);
     }
 
     iterator end()
     {
-      return iterator(nullptr);
+      return iterator(nullptr, root_);
     }
 
     const_iterator begin() const
     {
-      return const_iterator(minNode(root_));
+      return const_iterator(detail::minNode(root_), root_);
     }
 
     const_iterator end() const
     {
-      return const_iterator(nullptr);
+      return const_iterator(nullptr, root_);
     }
 
     const_iterator cbegin() const
@@ -209,19 +466,276 @@ namespace sadovnik
       return heightSub(it.node_);
     }
 
-  private:
-    static detail::BSTNode< Key, Value > * minNode(detail::BSTNode< Key, Value > * node)
+    iterator find(const Key & key)
     {
-      if (node == nullptr)
+      return iterator(findNode(key), root_);
+    }
+
+    const_iterator find(const Key & key) const
+    {
+      return const_iterator(findNode(key), root_);
+    }
+
+    void push(const Key & key, const Value & val)
+    {
+      if (root_ == nullptr)
       {
-        return nullptr;
+        root_ = new detail::BSTNode< Key, Value >(key, val);
+        ++size_;
+        return;
       }
 
-      while (node->left != nullptr)
+      detail::BSTNode< Key, Value > * cur = root_;
+      while (cur != nullptr)
       {
-        node = node->left;
+        if (keysEqual(key, cur->key))
+        {
+          throw std::logic_error("duplicate key");
+        }
+
+        if (cmp_(key, cur->key))
+        {
+          if (cur->left == nullptr)
+          {
+            cur->left = new detail::BSTNode< Key, Value >(key, val);
+            cur->left->parent = cur;
+            ++size_;
+            return;
+          }
+          cur = cur->left;
+        }
+        else
+        {
+          if (cur->right == nullptr)
+          {
+            cur->right = new detail::BSTNode< Key, Value >(key, val);
+            cur->right->parent = cur;
+            ++size_;
+            return;
+          }
+          cur = cur->right;
+        }
       }
-      return node;
+    }
+
+    bool has(const Key & key) const noexcept
+    {
+      return findNode(key) != nullptr;
+    }
+
+    Value get(const Key & key) const
+    {
+      const detail::BSTNode< Key, Value > * node = findNode(key);
+      if (node == nullptr)
+      {
+        throw std::out_of_range("missing key");
+      }
+      return node->val;
+    }
+
+    Value drop(const Key & key)
+    {
+      detail::BSTNode< Key, Value > * node = findNode(key);
+      if (node == nullptr)
+      {
+        throw std::out_of_range("missing key");
+      }
+
+      const Value result = node->val;
+      dropNode(node);
+      --size_;
+      return result;
+    }
+
+    const_iterator rotateLeft(const_iterator it)
+    {
+      detail::BSTNode< Key, Value > * rising =
+        const_cast< detail::BSTNode< Key, Value > * >(it.node_);
+      if (rising == nullptr || rising->parent == nullptr)
+      {
+        throw std::logic_error("cannot rotate left");
+      }
+
+      detail::BSTNode< Key, Value > * pivot = rising->parent;
+      if (pivot->right != rising)
+      {
+        throw std::logic_error("cannot rotate left");
+      }
+
+      detail::BSTNode< Key, Value > * leftChild = rising->left;
+      pivot->right = leftChild;
+      if (leftChild != nullptr)
+      {
+        leftChild->parent = pivot;
+      }
+
+      rising->left = pivot;
+      setChild(pivot->parent, pivot, rising);
+      pivot->parent = rising;
+
+      return const_iterator(rising, root_);
+    }
+
+    const_iterator rotateRight(const_iterator it)
+    {
+      detail::BSTNode< Key, Value > * rising =
+        const_cast< detail::BSTNode< Key, Value > * >(it.node_);
+      if (rising == nullptr || rising->parent == nullptr)
+      {
+        throw std::logic_error("cannot rotate right");
+      }
+
+      detail::BSTNode< Key, Value > * pivot = rising->parent;
+      if (pivot->left != rising)
+      {
+        throw std::logic_error("cannot rotate right");
+      }
+
+      detail::BSTNode< Key, Value > * rightChild = rising->right;
+      pivot->left = rightChild;
+      if (rightChild != nullptr)
+      {
+        rightChild->parent = pivot;
+      }
+
+      rising->right = pivot;
+      setChild(pivot->parent, pivot, rising);
+      pivot->parent = rising;
+
+      return const_iterator(rising, root_);
+    }
+
+    const_iterator rotateLargeLeft(const_iterator it)
+    {
+      detail::BSTNode< Key, Value > * rising =
+        const_cast< detail::BSTNode< Key, Value > * >(it.node_);
+      if (rising == nullptr || rising->parent == nullptr)
+      {
+        throw std::logic_error("cannot rotate large left");
+      }
+
+      detail::BSTNode< Key, Value > * parent = rising->parent;
+      if (parent->right != rising || parent->parent == nullptr
+          || parent->parent->left != parent)
+      {
+        throw std::logic_error("cannot rotate large left");
+      }
+
+      const_iterator afterFirst = rotateLeft(it);
+      return rotateRight(afterFirst);
+    }
+
+    const_iterator rotateLargeRight(const_iterator it)
+    {
+      detail::BSTNode< Key, Value > * rising =
+        const_cast< detail::BSTNode< Key, Value > * >(it.node_);
+      if (rising == nullptr || rising->parent == nullptr)
+      {
+        throw std::logic_error("cannot rotate large right");
+      }
+
+      detail::BSTNode< Key, Value > * parent = rising->parent;
+      if (parent->left != rising || parent->parent == nullptr
+          || parent->parent->right != parent)
+      {
+        throw std::logic_error("cannot rotate large right");
+      }
+
+      const_iterator afterFirst = rotateRight(it);
+      return rotateLeft(afterFirst);
+    }
+
+    void swap(BSTree & other) noexcept
+    {
+      detail::BSTNode< Key, Value > * tmpRoot = root_;
+      root_ = other.root_;
+      other.root_ = tmpRoot;
+
+      std::size_t tmpSize = size_;
+      size_ = other.size_;
+      other.size_ = tmpSize;
+
+      Compare tmpCmp = std::move(cmp_);
+      cmp_ = std::move(other.cmp_);
+      other.cmp_ = std::move(tmpCmp);
+    }
+
+  private:
+    bool keysEqual(const Key & lhs, const Key & rhs) const
+    {
+      return !cmp_(lhs, rhs) && !cmp_(rhs, lhs);
+    }
+
+    detail::BSTNode< Key, Value > * findNode(const Key & key) noexcept
+    {
+      return const_cast< detail::BSTNode< Key, Value > * >(
+        static_cast< const BSTree * >(this)->findNode(key));
+    }
+
+    const detail::BSTNode< Key, Value > * findNode(const Key & key) const noexcept
+    {
+      const detail::BSTNode< Key, Value > * cur = root_;
+      while (cur != nullptr)
+      {
+        if (keysEqual(key, cur->key))
+        {
+          return cur;
+        }
+
+        if (cmp_(key, cur->key))
+        {
+          cur = cur->left;
+        }
+        else
+        {
+          cur = cur->right;
+        }
+      }
+      return nullptr;
+    }
+
+    void setChild(detail::BSTNode< Key, Value > * parent,
+                  detail::BSTNode< Key, Value > * oldNode,
+                  detail::BSTNode< Key, Value > * newNode)
+    {
+      if (parent == nullptr)
+      {
+        root_ = newNode;
+      }
+      else if (parent->left == oldNode)
+      {
+        parent->left = newNode;
+      }
+      else
+      {
+        parent->right = newNode;
+      }
+
+      if (newNode != nullptr)
+      {
+        newNode->parent = parent;
+      }
+    }
+
+    void dropNode(detail::BSTNode< Key, Value > * node)
+    {
+      if (node->left != nullptr && node->right != nullptr)
+      {
+        detail::BSTNode< Key, Value > * succ = detail::minNode(node->right);
+        node->key = succ->key;
+        node->val = succ->val;
+
+        detail::BSTNode< Key, Value > * succParent = succ->parent;
+        detail::BSTNode< Key, Value > * succRight = succ->right;
+        setChild(succParent, succ, succRight);
+        delete succ;
+        return;
+      }
+
+      detail::BSTNode< Key, Value > * child =
+        node->left != nullptr ? node->left : node->right;
+      setChild(node->parent, node, child);
+      delete node;
     }
 
     static void destroySub(detail::BSTNode< Key, Value > * node)
@@ -234,6 +748,41 @@ namespace sadovnik
       destroySub(node->left);
       destroySub(node->right);
       delete node;
+    }
+
+    static detail::BSTNode< Key, Value > * cloneSub(
+      const detail::BSTNode< Key, Value > * node)
+    {
+      if (node == nullptr)
+      {
+        return nullptr;
+      }
+
+      detail::BSTNode< Key, Value > * copy =
+        new detail::BSTNode< Key, Value >(node->key, node->val);
+      try
+      {
+        copy->left = cloneSub(node->left);
+        if (copy->left != nullptr)
+        {
+          copy->left->parent = copy;
+        }
+
+        copy->right = cloneSub(node->right);
+        if (copy->right != nullptr)
+        {
+          copy->right->parent = copy;
+        }
+      }
+      catch (...)
+      {
+        destroySub(copy->left);
+        destroySub(copy->right);
+        delete copy;
+        throw;
+      }
+
+      return copy;
     }
 
     static std::size_t heightSub(const detail::BSTNode< Key, Value > * node)
@@ -253,6 +802,13 @@ namespace sadovnik
     std::size_t size_;
     Compare cmp_;
   };
+
+  template< class Key, class Value, class Compare >
+  void swap(BSTree< Key, Value, Compare > & lhs,
+            BSTree< Key, Value, Compare > & rhs) noexcept
+  {
+    lhs.swap(rhs);
+  }
 
 }
 

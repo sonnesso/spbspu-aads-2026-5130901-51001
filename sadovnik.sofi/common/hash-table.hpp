@@ -52,6 +52,64 @@ namespace sadovnik
       delete[] cells_;
     }
 
+    HashTable(const HashTable & other)
+      : cells_(new Entry[other.capacity()]),
+        slotCnt_(other.slotCnt_),
+        bktSize_(other.bktSize_),
+        elemCnt_(other.elemCnt_),
+        hash_(other.hash_),
+        equal_(other.equal_)
+    {
+      for (std::size_t i = 0; i < capacity(); ++i)
+      {
+        cells_[i] = other.cells_[i];
+      }
+    }
+
+    HashTable(HashTable && other) noexcept
+      : cells_(other.cells_),
+        slotCnt_(other.slotCnt_),
+        bktSize_(other.bktSize_),
+        elemCnt_(other.elemCnt_),
+        hash_(std::move(other.hash_)),
+        equal_(std::move(other.equal_))
+    {
+      other.cells_ = nullptr;
+      other.slotCnt_ = 0;
+      other.bktSize_ = 0;
+      other.elemCnt_ = 0;
+    }
+
+    HashTable & operator=(const HashTable & other)
+    {
+      if (this != &other)
+      {
+        HashTable tmp(other);
+        swap(tmp);
+      }
+      return *this;
+    }
+
+    HashTable & operator=(HashTable && other) noexcept
+    {
+      if (this != &other)
+      {
+        delete[] cells_;
+        cells_ = other.cells_;
+        slotCnt_ = other.slotCnt_;
+        bktSize_ = other.bktSize_;
+        elemCnt_ = other.elemCnt_;
+        hash_ = std::move(other.hash_);
+        equal_ = std::move(other.equal_);
+
+        other.cells_ = nullptr;
+        other.slotCnt_ = 0;
+        other.bktSize_ = 0;
+        other.elemCnt_ = 0;
+      }
+      return *this;
+    }
+
     void clear() noexcept
     {
       for (std::size_t i = 0; i < capacity(); ++i)
@@ -175,8 +233,213 @@ namespace sadovnik
       return true;
     }
 
+    void rehash(std::size_t newSlotCnt)
+    {
+      if (newSlotCnt == 0)
+      {
+        throw std::invalid_argument("invalid hash table capacity");
+      }
+
+      HashTable fresh(newSlotCnt, bktSize_, hash_, equal_);
+      for (const_iterator it = begin(); it != end(); ++it)
+      {
+        fresh.add(it->key, it->val);
+      }
+      swap(fresh);
+    }
+
+    void swap(HashTable & other) noexcept
+    {
+      Entry * tmpCells = cells_;
+      cells_ = other.cells_;
+      other.cells_ = tmpCells;
+
+      std::size_t tmpSlotCnt = slotCnt_;
+      slotCnt_ = other.slotCnt_;
+      other.slotCnt_ = tmpSlotCnt;
+
+      std::size_t tmpBktSize = bktSize_;
+      bktSize_ = other.bktSize_;
+      other.bktSize_ = tmpBktSize;
+
+      std::size_t tmpElemCnt = elemCnt_;
+      elemCnt_ = other.elemCnt_;
+      other.elemCnt_ = tmpElemCnt;
+
+      Hash tmpHash = hash_;
+      hash_ = other.hash_;
+      other.hash_ = tmpHash;
+
+      Equal tmpEqual = equal_;
+      equal_ = other.equal_;
+      other.equal_ = tmpEqual;
+    }
+
+    class const_iterator;
+
+    class iterator
+    {
+    public:
+      iterator(HashTable * tab = nullptr, std::size_t idx = 0)
+        : tab_(tab),
+          idx_(idx)
+      {
+        skipEmpty();
+      }
+
+      Entry & operator*() const
+      {
+        return tab_->cells_[idx_];
+      }
+
+      Entry * operator->() const
+      {
+        return &tab_->cells_[idx_];
+      }
+
+      iterator & operator++()
+      {
+        ++idx_;
+        skipEmpty();
+        return *this;
+      }
+
+      bool operator==(const iterator & other) const
+      {
+        return tab_ == other.tab_ && idx_ == other.idx_;
+      }
+
+      bool operator!=(const iterator & other) const
+      {
+        return !(*this == other);
+      }
+
+    private:
+      void skipEmpty()
+      {
+        if (tab_ == nullptr)
+        {
+          return;
+        }
+        while (idx_ < tab_->capacity() && !tab_->cells_[idx_].used)
+        {
+          ++idx_;
+        }
+      }
+
+      HashTable * tab_;
+      std::size_t idx_;
+
+      friend class const_iterator;
+    };
+
+    class const_iterator
+    {
+    public:
+      const_iterator(const HashTable * tab = nullptr, std::size_t idx = 0)
+        : tab_(tab),
+          idx_(idx)
+      {
+        skipEmpty();
+      }
+
+      const_iterator(const iterator & other)
+        : tab_(other.tab_),
+          idx_(other.idx_)
+      {
+      }
+
+      const Entry & operator*() const
+      {
+        return tab_->cells_[idx_];
+      }
+
+      const Entry * operator->() const
+      {
+        return &tab_->cells_[idx_];
+      }
+
+      const_iterator & operator++()
+      {
+        ++idx_;
+        skipEmpty();
+        return *this;
+      }
+
+      bool operator==(const const_iterator & other) const
+      {
+        return tab_ == other.tab_ && idx_ == other.idx_;
+      }
+
+      bool operator!=(const const_iterator & other) const
+      {
+        return !(*this == other);
+      }
+
+    private:
+      void skipEmpty()
+      {
+        if (tab_ == nullptr)
+        {
+          return;
+        }
+        while (idx_ < tab_->capacity() && !tab_->cells_[idx_].used)
+        {
+          ++idx_;
+        }
+      }
+
+      const HashTable * tab_;
+      std::size_t idx_;
+    };
+
+    iterator begin()
+    {
+      return iterator(this, HOME_POS);
+    }
+
+    iterator end()
+    {
+      return iterator(this, capacity());
+    }
+
+    const_iterator begin() const
+    {
+      return const_iterator(this, HOME_POS);
+    }
+
+    const_iterator end() const
+    {
+      return const_iterator(this, capacity());
+    }
+
+    const_iterator cbegin() const
+    {
+      return begin();
+    }
+
+    const_iterator cend() const
+    {
+      return end();
+    }
+
   private:
     static const std::size_t HOME_POS = 0;
+
+    explicit HashTable(std::size_t slotCnt, std::size_t bktSize, Hash hash, Equal equal)
+      : cells_(nullptr),
+        slotCnt_(slotCnt),
+        bktSize_(bktSize),
+        elemCnt_(0),
+        hash_(hash),
+        equal_(equal)
+    {
+      if (slotCnt_ == 0 || bktSize_ == 0)
+      {
+        throw std::invalid_argument("invalid hash table capacity");
+      }
+      cells_ = new Entry[capacity()];
+    }
 
     std::size_t homeSlot(const Key & key) const
     {
@@ -253,6 +516,13 @@ namespace sadovnik
     Hash hash_;
     Equal equal_;
   };
+
+  template< class Key, class Value, class Hash, class Equal >
+  void swap(HashTable< Key, Value, Hash, Equal > & lhs,
+            HashTable< Key, Value, Hash, Equal > & rhs) noexcept
+  {
+    lhs.swap(rhs);
+  }
 
 }
 
