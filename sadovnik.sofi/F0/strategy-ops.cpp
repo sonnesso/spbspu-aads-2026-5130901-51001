@@ -183,4 +183,46 @@ namespace sadovnik
     out << ")\n";
   }
 
+  void writeStintSequence(std::ostream & out, const List< Stint > & stints)
+  {
+    bool first = true;
+    for (auto it = stints.begin(); it != stints.end(); ++it)
+    {
+      if (!first)
+      {
+        out << " -> ";
+      }
+      first = false;
+      out << it->tyre_name << '(' << it->laps << ')';
+    }
+  }
+
+  void printStrategies(const Session & session, std::ostream & out)
+  {
+    out << "Strategies:\n";
+    for (auto it = session.strategyNames().begin();
+         it != session.strategyNames().end(); ++it)
+    {
+      const List< Stint > & stints = session.strategies().get(*it);
+      out << *it << ": ";
+      writeStintSequence(out, stints);
+      out << '\n';
+    }
+  }
+
+  bool deleteStrategy(Session & session, const std::string & name,
+                      std::ostream & out)
+  {
+    if (!session.strategies().has(name))
+    {
+      return false;
+    }
+
+    session.strategies().drop(name);
+    session.removeStrategyName(name);
+    session.markDirty();
+    out << "Strategy \"" << name << "\" deleted\n";
+    return true;
+  }
+
 }

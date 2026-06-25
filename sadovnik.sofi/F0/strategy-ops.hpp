@@ -19,6 +19,9 @@ namespace sadovnik
                                    const List< Stint > & stints);
   void printStrategyCreatedLine(const std::string & name,
                                 const List< Stint > & stints, std::ostream & out);
+  void printStrategies(const Session & session, std::ostream & out);
+  bool deleteStrategy(Session & session, const std::string & name,
+                      std::ostream & out);
 
 }
 

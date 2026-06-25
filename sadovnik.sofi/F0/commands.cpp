@@ -155,8 +155,38 @@ namespace
     }
 
     context.session().markDirty();
+    context.session().addStrategyName(name);
     sadovnik::printStrategyCreatedLine(name, stints, out);
     return true;
+  }
+
+  bool listStrategiesCmd(CommandContext & context,
+                         const List< std::string > & tokens, std::ostream & out)
+  {
+    if (tokens.size() != 1)
+    {
+      return false;
+    }
+
+    sadovnik::printStrategies(context.session(), out);
+    return true;
+  }
+
+  bool delStrategyCmd(CommandContext & context, const List< std::string > & tokens,
+                      std::ostream & out)
+  {
+    if (tokens.size() != 2)
+    {
+      return false;
+    }
+
+    const std::string name = tokenAt(tokens, 1);
+    if (!sadovnik::isValidName(name))
+    {
+      return false;
+    }
+
+    return sadovnik::deleteStrategy(context.session(), name, out);
   }
 
 }
@@ -189,8 +219,8 @@ namespace sadovnik
     commands.add("compare", stubCmd);
     commands.add("optimal-pit-window", stubCmd);
     commands.add("show-tyres", showTyresCmd);
-    commands.add("list-strategies", stubCmd);
-    commands.add("del-strategy", stubCmd);
+    commands.add("list-strategies", listStrategiesCmd);
+    commands.add("del-strategy", delStrategyCmd);
     commands.add("save-session", stubCmd);
     commands.add("load-session", stubCmd);
     commands.add("load-session-force", stubCmd);

@@ -37,6 +37,10 @@ namespace sadovnik
     StrategyTab & strategies();
     const StrategyTab & strategies() const;
 
+    void addStrategyName(const std::string & name);
+    void removeStrategyName(const std::string & name);
+    const List< std::string > & strategyNames() const;
+
     void setTrack(double length_km, unsigned laps, double base_lap_s);
 
   private:
@@ -47,6 +51,7 @@ namespace sadovnik
     TyreTab tyres_;
     List< std::string > tyre_names_;
     StrategyTab strategies_;
+    List< std::string > strategy_names_;
   };
 
 }

@@ -90,6 +90,28 @@ namespace sadovnik
     return strategies_;
   }
 
+  void Session::addStrategyName(const std::string & name)
+  {
+    strategy_names_.pushBack(name);
+  }
+
+  void Session::removeStrategyName(const std::string & name)
+  {
+    for (auto it = strategy_names_.begin(); it != strategy_names_.end(); ++it)
+    {
+      if (*it == name)
+      {
+        strategy_names_.erase(it);
+        return;
+      }
+    }
+  }
+
+  const List< std::string > & Session::strategyNames() const
+  {
+    return strategy_names_;
+  }
+
   void Session::setTrack(double length_km, unsigned laps, double base_lap_s)
   {
     track_.is_set = true;
