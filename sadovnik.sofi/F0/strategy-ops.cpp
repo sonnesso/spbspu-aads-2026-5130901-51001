@@ -273,6 +273,11 @@ namespace sadovnik
     }
 
     const List< Stint > & stints = session.strategies().get(name);
+    if (!strategyValidationError(session, stints).empty())
+    {
+      return false;
+    }
+
     printSimulateStintLines(session, stints, out);
     const double total = strategyRaceTime(session, stints);
     printSimulateTotalLine(name, total, out);
