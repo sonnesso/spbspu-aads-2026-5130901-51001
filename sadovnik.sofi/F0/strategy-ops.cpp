@@ -10,6 +10,8 @@ namespace
 
   using sadovnik::List;
   using sadovnik::Stint;
+  using sadovnik::TyreKind;
+  using sadovnik::TyreSpec;
 
   std::string tokenAt(const List< std::string > & tokens, std::size_t index)
   {
@@ -36,6 +38,53 @@ namespace
 
     result = static_cast< unsigned >(parsed);
     return true;
+  }
+
+  std::string slickCompoundKey(const TyreSpec & spec,
+                               const std::string & tyre_name)
+  {
+    if (!spec.compound.empty())
+    {
+      return spec.compound;
+    }
+
+    return tyre_name;
+  }
+
+  bool hasSlickCompoundKey(const List< std::string > & keys,
+                           const std::string & key)
+  {
+    for (auto it = keys.begin(); it != keys.end(); ++it)
+    {
+      if (*it == key)
+      {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  bool hasEnoughSlickCompoundsForDry(const sadovnik::Session & session,
+                                     const List< Stint > & stints)
+  {
+    List< std::string > keys;
+    for (auto it = stints.begin(); it != stints.end(); ++it)
+    {
+      const TyreSpec & spec = session.tyres().get(it->tyre_name);
+      if (spec.kind != TyreKind::Slick)
+      {
+        continue;
+      }
+
+      const std::string key = slickCompoundKey(spec, it->tyre_name);
+      if (!hasSlickCompoundKey(keys, key))
+      {
+        keys.pushBack(key);
+      }
+    }
+
+    return keys.size() >= 2;
   }
 
 }
@@ -103,7 +152,18 @@ namespace sadovnik
       total_laps += it->laps;
     }
 
-    return total_laps == session.track().laps;
+    if (total_laps != session.track().laps)
+    {
+      return false;
+    }
+
+    if (session.weather() == Weather::Dry &&
+        !hasEnoughSlickCompoundsForDry(session, stints))
+    {
+      return false;
+    }
+
+    return true;
   }
 
   void printStrategyCreatedLine(const std::string & name,
