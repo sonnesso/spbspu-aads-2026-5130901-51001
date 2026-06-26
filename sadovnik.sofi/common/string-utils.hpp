@@ -101,6 +101,75 @@ namespace sadovnik
     return true;
   }
 
+  inline bool parseDouble(const std::string & value, double & result)
+  {
+    if (value.empty())
+    {
+      return false;
+    }
+
+    std::size_t pos = 0;
+    int sign = 1;
+    if (value[pos] == '-')
+    {
+      sign = -1;
+      ++pos;
+    }
+    else if (value[pos] == '+')
+    {
+      ++pos;
+    }
+
+    if (pos >= value.size())
+    {
+      return false;
+    }
+
+    double intPart = 0.0;
+    bool hasDigits = false;
+    while (pos < value.size() && isDigit(value[pos]))
+    {
+      hasDigits = true;
+      intPart = intPart * 10.0 + static_cast< double >(value[pos] - '0');
+      ++pos;
+    }
+
+    double fracPart = 0.0;
+    double fracDiv = 1.0;
+    bool sawDot = false;
+    bool fracDigits = false;
+    if (pos < value.size() && value[pos] == '.')
+    {
+      sawDot = true;
+      ++pos;
+      while (pos < value.size() && isDigit(value[pos]))
+      {
+        hasDigits = true;
+        fracDigits = true;
+        fracDiv = fracDiv * 10.0;
+        fracPart = fracPart * 10.0 + static_cast< double >(value[pos] - '0');
+        ++pos;
+      }
+      if (fracDigits)
+      {
+        fracPart = fracPart / fracDiv;
+      }
+    }
+
+    if (!hasDigits || (sawDot && !fracDigits))
+    {
+      return false;
+    }
+
+    if (pos != value.size())
+    {
+      return false;
+    }
+
+    result = static_cast< double >(sign) * (intPart + fracPart);
+    return true;
+  }
+
 }
 
 #endif
