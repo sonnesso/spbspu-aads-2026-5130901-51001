@@ -2,6 +2,7 @@
 
 #include "io-format.hpp"
 #include "session-types.hpp"
+#include "tyre-ops.hpp"
 
 #include <string-utils.hpp>
 
@@ -15,6 +16,7 @@ namespace
 
   using sadovnik::List;
   using sadovnik::Session;
+  using sadovnik::TyreSpec;
   using sadovnik::Weather;
 
   const char INVALID_FILE[] = "invalid session file";
@@ -101,6 +103,24 @@ namespace
     session.setHumidity(static_cast< unsigned >(humidity));
   }
 
+  void parseTyreLine(const List< std::string > & tokens, Session & session)
+  {
+    std::string name;
+    TyreSpec spec;
+    if (!sadovnik::parseTyreLineTokens(tokens, name, spec))
+    {
+      throw std::logic_error(INVALID_FILE);
+    }
+
+    if (session.tyres().has(name))
+    {
+      throw std::logic_error(INVALID_FILE);
+    }
+
+    session.tyres().add(name, spec);
+    session.addTyreName(name);
+  }
+
   void parseBodyLine(const List< std::string > & tokens, Session & session)
   {
     const std::string & tag = tokenAt(tokens, 0);
@@ -114,9 +134,14 @@ namespace
       parseWeatherLine(tokens, session);
       return;
     }
-    if (tag == "tyre" || tag == "strategy")
+    if (tag == "tyre")
     {
-      throw std::logic_error("tyre/strategy blocks not implemented yet");
+      parseTyreLine(tokens, session);
+      return;
+    }
+    if (tag == "strategy")
+    {
+      throw std::logic_error("strategy blocks not implemented yet");
     }
 
     throw std::logic_error(INVALID_FILE);
@@ -182,6 +207,23 @@ namespace sadovnik
     out << "weather " << weatherToString(weather) << ' ' << humidity << '\n';
   }
 
+  void writeSessionTyres(std::ostream & out, const Session & session)
+  {
+    out << std::fixed << std::setprecision(2);
+    for (auto it = session.tyreNames().begin(); it != session.tyreNames().end();
+         ++it)
+    {
+      const TyreSpec & spec = session.tyres().get(*it);
+      out << "tyre " << *it << ' ' << tyreKindToString(spec.kind) << ' '
+          << spec.degr << ' ' << spec.max_laps << ' ' << spec.pit_time;
+      if (!spec.compound.empty())
+      {
+        out << ' ' << spec.compound;
+      }
+      out << '\n';
+    }
+  }
+
   void writeSessionEnd(std::ostream & out)
   {
     out << "end\n";
@@ -203,6 +245,7 @@ namespace sadovnik
     writeSessionHeader(out);
     writeSessionTrack(out, session.track());
     writeSessionWeather(out, session.weather(), session.humidity());
+    writeSessionTyres(out, session);
     writeSessionEnd(out);
 
     if (!out)

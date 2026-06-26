@@ -40,6 +40,66 @@ namespace
     return true;
   }
 
+  bool fillTyreSpecFromTokens(const List< std::string > & tokens,
+                              std::string & name, TyreSpec & spec)
+  {
+    name = tokenAt(tokens, 1);
+    if (!sadovnik::isValidName(name))
+    {
+      return false;
+    }
+
+    TyreKind kind = TyreKind::Slick;
+    if (!sadovnik::parseTyreKind(tokenAt(tokens, 2), kind))
+    {
+      return false;
+    }
+
+    if (!sadovnik::tyreNameMatchesKind(name, kind))
+    {
+      return false;
+    }
+
+    double degr = 0.0;
+    if (!sadovnik::parseDouble(tokenAt(tokens, 3), degr) || degr <= 0.0)
+    {
+      return false;
+    }
+
+    unsigned max_laps = 0;
+    unsigned pit_time = 0;
+    if (!parsePositiveUnsigned(tokenAt(tokens, 4), max_laps))
+    {
+      return false;
+    }
+    if (!parsePositiveUnsigned(tokenAt(tokens, 5), pit_time))
+    {
+      return false;
+    }
+
+    std::string compound;
+    if (tokens.size() == 7)
+    {
+      if (kind != TyreKind::Slick)
+      {
+        return false;
+      }
+      if (!sadovnik::parseCompound(tokenAt(tokens, 6), compound))
+      {
+        return false;
+      }
+    }
+
+    spec = TyreSpec();
+    spec.kind = kind;
+    spec.compound = compound;
+    spec.degr = degr;
+    spec.max_laps = max_laps;
+    spec.pit_time = pit_time;
+    spec.base_offset = sadovnik::baseOffsetForTyre(kind, compound);
+    return true;
+  }
+
 }
 
 namespace sadovnik
@@ -71,61 +131,23 @@ namespace sadovnik
       return false;
     }
 
-    name = tokenAt(tokens, 1);
-    if (!isValidName(name))
+    return fillTyreSpecFromTokens(tokens, name, spec);
+  }
+
+  bool parseTyreLineTokens(const List< std::string > & tokens, std::string & name,
+                           TyreSpec & spec)
+  {
+    if (tokens.size() != 6 && tokens.size() != 7)
     {
       return false;
     }
 
-    TyreKind kind = TyreKind::Slick;
-    if (!parseTyreKind(tokenAt(tokens, 2), kind))
+    if (tokenAt(tokens, 0) != "tyre")
     {
       return false;
     }
 
-    if (!tyreNameMatchesKind(name, kind))
-    {
-      return false;
-    }
-
-    double degr = 0.0;
-    if (!parseDouble(tokenAt(tokens, 3), degr) || degr <= 0.0)
-    {
-      return false;
-    }
-
-    unsigned max_laps = 0;
-    unsigned pit_time = 0;
-    if (!parsePositiveUnsigned(tokenAt(tokens, 4), max_laps))
-    {
-      return false;
-    }
-    if (!parsePositiveUnsigned(tokenAt(tokens, 5), pit_time))
-    {
-      return false;
-    }
-
-    std::string compound;
-    if (tokens.size() == 7)
-    {
-      if (kind != TyreKind::Slick)
-      {
-        return false;
-      }
-      if (!parseCompound(tokenAt(tokens, 6), compound))
-      {
-        return false;
-      }
-    }
-
-    spec = TyreSpec();
-    spec.kind = kind;
-    spec.compound = compound;
-    spec.degr = degr;
-    spec.max_laps = max_laps;
-    spec.pit_time = pit_time;
-    spec.base_offset = baseOffsetForTyre(kind, compound);
-    return true;
+    return fillTyreSpecFromTokens(tokens, name, spec);
   }
 
   void sortTyreNames(List< std::string > & names)

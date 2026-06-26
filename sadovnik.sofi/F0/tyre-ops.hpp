@@ -16,6 +16,8 @@ namespace sadovnik
   bool tyreNameMatchesKind(const std::string & name, TyreKind kind);
   bool parseAddTyreTokens(const List< std::string > & tokens, std::string & name,
                           TyreSpec & spec);
+  bool parseTyreLineTokens(const List< std::string > & tokens, std::string & name,
+                           TyreSpec & spec);
   void printTyres(const Session & session, std::ostream & out);
 
 }
