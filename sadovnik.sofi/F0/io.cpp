@@ -47,24 +47,6 @@ namespace
     return false;
   }
 
-  void writeTrackLine(std::ostream & out, const sadovnik::TrackSpec & track)
-  {
-    if (!track.is_set)
-    {
-      return;
-    }
-
-    out << std::fixed << std::setprecision(3);
-    out << "track " << track.length_km << ' ' << track.laps << ' '
-        << track.base_lap_s << '\n';
-  }
-
-  void writeWeatherLine(std::ostream & out, Weather weather, unsigned humidity)
-  {
-    out << "weather " << sadovnik::weatherToString(weather) << ' ' << humidity
-        << '\n';
-  }
-
   void parseTrackLine(const List< std::string > & tokens, Session & session)
   {
     if (tokens.size() != 4)
@@ -76,7 +58,7 @@ namespace
     unsigned long long laps = 0;
     double base_lap_s = 0.0;
 
-    if (!sadovnik::parseDouble(tokenAt(tokens, 1), length_km) || length_km <= 0.0)
+    if (!sadovnik::parseDouble(tokenAt(tokens, 1), length_km) || length_km < 0.0)
     {
       throw std::logic_error(INVALID_FILE);
     }
@@ -177,6 +159,34 @@ namespace sadovnik
                             suffix) == 0;
   }
 
+  void writeSessionHeader(std::ostream & out)
+  {
+    out << ioformat::SESSION_MAGIC << ' ' << ioformat::FORMAT_VERSION << '\n';
+  }
+
+  void writeSessionTrack(std::ostream & out, const TrackSpec & track)
+  {
+    if (!track.is_set)
+    {
+      return;
+    }
+
+    out << std::fixed << std::setprecision(3);
+    out << "track " << track.length_km << ' ' << track.laps << ' '
+        << track.base_lap_s << '\n';
+  }
+
+  void writeSessionWeather(std::ostream & out, Weather weather,
+                           unsigned humidity)
+  {
+    out << "weather " << weatherToString(weather) << ' ' << humidity << '\n';
+  }
+
+  void writeSessionEnd(std::ostream & out)
+  {
+    out << "end\n";
+  }
+
   void writeSession(const Session & session, const std::string & filename)
   {
     if (!hasDatExtension(filename))
@@ -190,10 +200,10 @@ namespace sadovnik
       throw std::runtime_error("cannot open file for writing");
     }
 
-    out << ioformat::SESSION_MAGIC << ' ' << ioformat::FORMAT_VERSION << '\n';
-    writeTrackLine(out, session.track());
-    writeWeatherLine(out, session.weather(), session.humidity());
-    out << "end\n";
+    writeSessionHeader(out);
+    writeSessionTrack(out, session.track());
+    writeSessionWeather(out, session.weather(), session.humidity());
+    writeSessionEnd(out);
 
     if (!out)
     {
