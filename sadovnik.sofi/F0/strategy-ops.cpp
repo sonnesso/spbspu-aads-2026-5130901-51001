@@ -2,6 +2,7 @@
 
 #include "tyre-math.hpp"
 
+#include "queue.hpp"
 #include <string-utils.hpp>
 
 #include <iomanip>
@@ -563,6 +564,80 @@ namespace sadovnik
       tryWriteUndercutWindow(session, *first->stints, *second->stints, out);
     }
 
+    return true;
+  }
+
+  bool isOneTyrePitOptionValid(const sadovnik::Session & session,
+                               const std::string & tyre_name, unsigned pit_lap,
+                               unsigned total_laps)
+  {
+    if (!session.track().is_set || !session.tyres().has(tyre_name))
+    {
+      return false;
+    }
+
+    if (pit_lap == 0 || pit_lap >= total_laps)
+    {
+      return false;
+    }
+
+    const TyreSpec & spec = session.tyres().get(tyre_name);
+    const unsigned second_laps = total_laps - pit_lap;
+    if (pit_lap > spec.max_laps || second_laps > spec.max_laps)
+    {
+      return false;
+    }
+
+    return true;
+  }
+
+  bool optimalPitWindow(const Session & session, const std::string & tyre_name,
+                        unsigned total_laps, std::ostream & out)
+  {
+    if (total_laps < 2 || !session.track().is_set ||
+        !session.tyres().has(tyre_name))
+    {
+      return false;
+    }
+
+    Queue< unsigned > candidates;
+    for (unsigned pit_lap = 1; pit_lap < total_laps; ++pit_lap)
+    {
+      if (isOneTyrePitOptionValid(session, tyre_name, pit_lap, total_laps))
+      {
+        candidates.push(pit_lap);
+      }
+    }
+
+    if (candidates.empty())
+    {
+      return false;
+    }
+
+    unsigned best_lap = 0;
+    double best_time = 0.0;
+    bool any = false;
+    while (!candidates.empty())
+    {
+      unsigned pit_lap = 0;
+      candidates.drop(pit_lap);
+
+      List< Stint > stints;
+      stints.pushBack(Stint(tyre_name, pit_lap));
+      stints.pushBack(Stint(tyre_name, total_laps - pit_lap));
+      const double time = strategyRaceTime(session, stints);
+      if (!any || time < best_time ||
+          (time == best_time && pit_lap < best_lap))
+      {
+        best_lap = pit_lap;
+        best_time = time;
+        any = true;
+      }
+    }
+
+    out << std::fixed << std::setprecision(1);
+    out << "Optimal pit window: lap " << best_lap << " (total time "
+        << best_time << "s, best of " << (total_laps - 1) << " options)\n";
     return true;
   }
 

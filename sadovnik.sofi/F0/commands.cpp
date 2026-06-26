@@ -245,6 +245,30 @@ namespace
     return sadovnik::compareStrategies(context.session(), names, out);
   }
 
+  bool optimalPitWindowCmd(CommandContext & context,
+                           const List< std::string > & tokens, std::ostream & out)
+  {
+    if (tokens.size() != 3)
+    {
+      return false;
+    }
+
+    const std::string tyre_name = tokenAt(tokens, 1);
+    if (!sadovnik::isValidName(tyre_name))
+    {
+      return false;
+    }
+
+    unsigned total_laps = 0;
+    if (!parsePositiveUnsigned(tokenAt(tokens, 2), total_laps))
+    {
+      return false;
+    }
+
+    return sadovnik::optimalPitWindow(context.session(), tyre_name, total_laps,
+                                     out);
+  }
+
 }
 
 namespace sadovnik
@@ -273,7 +297,7 @@ namespace sadovnik
     commands.add("create-strategy", createStrategyCmd);
     commands.add("simulate", simulateCmd);
     commands.add("compare", compareCmd);
-    commands.add("optimal-pit-window", stubCmd);
+    commands.add("optimal-pit-window", optimalPitWindowCmd);
     commands.add("show-tyres", showTyresCmd);
     commands.add("list-strategies", listStrategiesCmd);
     commands.add("del-strategy", delStrategyCmd);

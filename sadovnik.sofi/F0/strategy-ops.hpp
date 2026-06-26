@@ -28,6 +28,8 @@ namespace sadovnik
                         std::ostream & out);
   bool compareStrategies(const Session & session,
                          const List< std::string > & names, std::ostream & out);
+  bool optimalPitWindow(const Session & session, const std::string & tyre_name,
+                        unsigned total_laps, std::ostream & out);
 
 }
 
