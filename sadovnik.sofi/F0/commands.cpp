@@ -298,6 +298,85 @@ namespace
     return true;
   }
 
+  bool applyLoadedSession(CommandContext & context, const std::string & filename,
+                          sadovnik::Session & loaded)
+  {
+    try
+    {
+      loaded = sadovnik::readSession(filename);
+    }
+    catch (const std::exception &)
+    {
+      return false;
+    }
+
+    context.session() = loaded;
+    return true;
+  }
+
+  bool loadSessionCmd(CommandContext & context, const List< std::string > & tokens,
+                      std::ostream & out)
+  {
+    if (tokens.size() != 2)
+    {
+      return false;
+    }
+
+    const std::string filename = tokenAt(tokens, 1);
+    if (!sadovnik::hasDatExtension(filename))
+    {
+      return false;
+    }
+
+    if (context.session().isDirty())
+    {
+      return false;
+    }
+
+    sadovnik::Session loaded;
+    if (!applyLoadedSession(context, filename, loaded))
+    {
+      return false;
+    }
+
+    out << "Session loaded from " << filename << ".\n";
+    return true;
+  }
+
+  bool loadSessionForceCmd(CommandContext & context,
+                           const List< std::string > & tokens, std::ostream & out)
+  {
+    if (tokens.size() != 2)
+    {
+      return false;
+    }
+
+    const std::string filename = tokenAt(tokens, 1);
+    if (!sadovnik::hasDatExtension(filename))
+    {
+      return false;
+    }
+
+    const bool was_dirty = context.session().isDirty();
+    sadovnik::Session loaded;
+    if (!applyLoadedSession(context, filename, loaded))
+    {
+      return false;
+    }
+
+    out << "Loading session from " << filename << "... ";
+    if (was_dirty)
+    {
+      out << "discarding unsaved changes.\n";
+    }
+    else
+    {
+      out << "no unsaved changes.\n";
+    }
+    out << "Session loaded.\n";
+    return true;
+  }
+
 }
 
 namespace sadovnik
@@ -331,8 +410,8 @@ namespace sadovnik
     commands.add("list-strategies", listStrategiesCmd);
     commands.add("del-strategy", delStrategyCmd);
     commands.add("save-session", saveSessionCmd);
-    commands.add("load-session", stubCmd);
-    commands.add("load-session-force", stubCmd);
+    commands.add("load-session", loadSessionCmd);
+    commands.add("load-session-force", loadSessionForceCmd);
     commands.add("load-preset", stubCmd);
     commands.add("validate", validateCmd);
     commands.add("suggest-strategies", stubCmd);
