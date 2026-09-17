@@ -403,8 +403,20 @@ namespace
     }
 
     context.session() = loaded;
+    context.session().setCircuitName(display_name);
     sadovnik::printPresetLoaded(context.session(), display_name, out);
     return true;
+  }
+
+  bool suggestStrategiesCmd(CommandContext & context,
+                            const List< std::string > & tokens, std::ostream & out)
+  {
+    if (tokens.size() != 1)
+    {
+      return false;
+    }
+
+    return sadovnik::suggestStrategies(context.session(), out);
   }
 
 }
@@ -444,7 +456,7 @@ namespace sadovnik
     commands.add("load-session-force", loadSessionForceCmd);
     commands.add("load-preset", loadPresetCmd);
     commands.add("validate", validateCmd);
-    commands.add("suggest-strategies", stubCmd);
+    commands.add("suggest-strategies", suggestStrategiesCmd);
     commands.add("set-weather", stubCmd);
     commands.add("set-hum", stubCmd);
     commands.add("crossover-check", stubCmd);

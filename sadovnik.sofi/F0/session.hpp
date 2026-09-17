@@ -43,11 +43,15 @@ namespace sadovnik
 
     void setTrack(double length_km, unsigned laps, double base_lap_s);
 
+    const std::string & circuitName() const;
+    void setCircuitName(const std::string & name);
+
   private:
     TrackSpec track_;
     Weather weather_;
     unsigned humidity_;
     bool dirty_;
+    std::string circuit_name_;
     TyreTab tyres_;
     List< std::string > tyre_names_;
     StrategyTab strategies_;

@@ -717,4 +717,265 @@ namespace sadovnik
     return true;
   }
 
+  bool clampStintLaps(unsigned & first, unsigned second_max, unsigned total)
+  {
+    if (total < 2)
+    {
+      return false;
+    }
+    if (first >= total)
+    {
+      first = total - 1;
+    }
+    if (first == 0)
+    {
+      first = 1;
+    }
+    const unsigned second = total - first;
+    if (second == 0 || second > second_max || first > second_max)
+    {
+      return false;
+    }
+    return true;
+  }
+
+  bool buildTwoStintPlan(const Session & session, const std::string & tyre1,
+                         const std::string & tyre2, unsigned first_laps,
+                         List< Stint > & stints)
+  {
+    if (!session.tyres().has(tyre1) || !session.tyres().has(tyre2))
+    {
+      return false;
+    }
+
+    const unsigned total = session.track().laps;
+    const unsigned max1 = session.tyres().get(tyre1).max_laps;
+    const unsigned max2 = session.tyres().get(tyre2).max_laps;
+    unsigned first = first_laps;
+    if (first > max1)
+    {
+      first = max1;
+    }
+    if (!clampStintLaps(first, max2, total))
+    {
+      return false;
+    }
+    if (total - first > max2)
+    {
+      return false;
+    }
+
+    stints = List< Stint >();
+    stints.pushBack(Stint(tyre1, first));
+    stints.pushBack(Stint(tyre2, total - first));
+    return isCreateStrategyStintsValid(session, stints);
+  }
+
+  bool buildThreeStintPlan(const Session & session, const std::string & tyre1,
+                           const std::string & tyre2, const std::string & tyre3,
+                           unsigned first_laps, unsigned second_laps,
+                           List< Stint > & stints)
+  {
+    if (!session.tyres().has(tyre1) || !session.tyres().has(tyre2) ||
+        !session.tyres().has(tyre3))
+    {
+      return false;
+    }
+
+    const unsigned total = session.track().laps;
+    if (first_laps + second_laps >= total)
+    {
+      return false;
+    }
+
+    const unsigned third = total - first_laps - second_laps;
+    const TyreSpec & s1 = session.tyres().get(tyre1);
+    const TyreSpec & s2 = session.tyres().get(tyre2);
+    const TyreSpec & s3 = session.tyres().get(tyre3);
+    if (first_laps == 0 || second_laps == 0 || third == 0)
+    {
+      return false;
+    }
+    if (first_laps > s1.max_laps || second_laps > s2.max_laps ||
+        third > s3.max_laps)
+    {
+      return false;
+    }
+
+    stints = List< Stint >();
+    stints.pushBack(Stint(tyre1, first_laps));
+    stints.pushBack(Stint(tyre2, second_laps));
+    stints.pushBack(Stint(tyre3, third));
+    return isCreateStrategyStintsValid(session, stints);
+  }
+
+  std::string uniqueStrategyName(Session & session, const std::string & base,
+                                 std::ostream & out)
+  {
+    if (!session.strategies().has(base))
+    {
+      return base;
+    }
+
+    const std::string renamed = base + "_2";
+    out << "Warning: strategy \"" << base
+        << "\" already exists; saved as \"" << renamed << "\".\n";
+    if (!session.strategies().has(renamed))
+    {
+      return renamed;
+    }
+
+    const std::string alt = base + "_3";
+    out << "Warning: strategy \"" << renamed
+        << "\" already exists; saved as \"" << alt << "\".\n";
+    return alt;
+  }
+
+  void writeSuggestStintBrief(const List< Stint > & stints, std::ostream & out)
+  {
+    bool first = true;
+    for (auto it = stints.begin(); it != stints.end(); ++it)
+    {
+      if (!first)
+      {
+        out << ", ";
+      }
+      first = false;
+      out << it->tyre_name << ' ' << it->laps;
+    }
+  }
+
+  struct SuggestCandidate
+  {
+    std::string base_name;
+    List< Stint > stints;
+    double time;
+  };
+
+  void pushCandidate(const Session & session, const std::string & base_name,
+                     const List< Stint > & stints,
+                     List< SuggestCandidate > & candidates)
+  {
+    if (!isCreateStrategyStintsValid(session, stints))
+    {
+      return;
+    }
+
+    SuggestCandidate candidate;
+    candidate.base_name = base_name;
+    candidate.stints = stints;
+    candidate.time = strategyRaceTime(session, stints);
+    candidates.pushBack(candidate);
+  }
+
+  bool suggestStrategies(Session & session, std::ostream & out)
+  {
+    if (!session.track().is_set)
+    {
+      return false;
+    }
+
+    if (!session.tyres().has("Soft") || !session.tyres().has("Medium") ||
+        !session.tyres().has("Hard"))
+    {
+      return false;
+    }
+
+    const unsigned laps = session.track().laps;
+    const std::string prefix =
+      session.circuitName().empty() ? std::string("Track") : session.circuitName();
+
+    List< SuggestCandidate > candidates;
+    List< Stint > plan;
+
+    if (buildTwoStintPlan(session, "Soft", "Hard", laps * 34 / 100, plan))
+    {
+      pushCandidate(session, prefix + "_1Stop_SH", plan, candidates);
+    }
+    if (buildTwoStintPlan(session, "Medium", "Hard", laps * 34 / 100, plan))
+    {
+      pushCandidate(session, prefix + "_1Stop_MH", plan, candidates);
+    }
+    if (buildTwoStintPlan(session, "Soft", "Medium", laps * 40 / 100, plan))
+    {
+      pushCandidate(session, prefix + "_1Stop_SM", plan, candidates);
+    }
+    if (buildThreeStintPlan(session, "Soft", "Medium", "Hard", laps * 22 / 100,
+                            laps * 32 / 100, plan))
+    {
+      pushCandidate(session, prefix + "_2Stop_SMH", plan, candidates);
+    }
+    if (buildThreeStintPlan(session, "Soft", "Medium", "Hard", laps * 18 / 100,
+                            laps * 28 / 100, plan))
+    {
+      pushCandidate(session, prefix + "_2Stop_SMH_B", plan, candidates);
+    }
+
+    if (candidates.empty())
+    {
+      return false;
+    }
+
+    for (auto it = candidates.begin(); it != candidates.end(); ++it)
+    {
+      auto best = it;
+      for (auto jt = it; jt != candidates.end(); ++jt)
+      {
+        if (jt->time < best->time)
+        {
+          best = jt;
+        }
+      }
+      if (best != it)
+      {
+        SuggestCandidate tmp = *it;
+        *it = *best;
+        *best = tmp;
+      }
+    }
+
+    List< SuggestCandidate > chosen;
+    std::size_t count = 0;
+    for (auto it = candidates.begin(); it != candidates.end() && count < 5; ++it)
+    {
+      chosen.pushBack(*it);
+      ++count;
+    }
+
+    const std::string label =
+      session.circuitName().empty() ? std::string("Track") : session.circuitName();
+    out << "Suggested strategies (" << label << ", " << laps << " laps):\n";
+
+    std::string best_name;
+    std::size_t rank = 1;
+    for (auto it = chosen.begin(); it != chosen.end(); ++it)
+    {
+      const std::string name = uniqueStrategyName(session, it->base_name, out);
+      try
+      {
+        session.strategies().add(name, it->stints);
+      }
+      catch (const std::exception &)
+      {
+        return false;
+      }
+      session.addStrategyName(name);
+
+      out << std::fixed << std::setprecision(1);
+      out << "  " << rank << ". " << name << " — " << it->time << " s (";
+      writeSuggestStintBrief(it->stints, out);
+      out << ")\n";
+
+      if (rank == 1)
+      {
+        best_name = name;
+      }
+      ++rank;
+    }
+
+    out << "Best suggested: " << best_name << '\n';
+    session.markDirty();
+    return true;
+  }
+
 }

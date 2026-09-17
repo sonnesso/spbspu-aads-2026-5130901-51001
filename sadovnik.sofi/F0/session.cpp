@@ -8,6 +8,7 @@ namespace sadovnik
       weather_(Weather::Dry),
       humidity_(0),
       dirty_(false),
+      circuit_name_(),
       tyres_(8, 4),
       strategies_(8, 4)
   {
@@ -119,6 +120,16 @@ namespace sadovnik
     track_.laps = laps;
     track_.base_lap_s = base_lap_s;
     markDirty();
+  }
+
+  const std::string & Session::circuitName() const
+  {
+    return circuit_name_;
+  }
+
+  void Session::setCircuitName(const std::string & name)
+  {
+    circuit_name_ = name;
   }
 
 }
