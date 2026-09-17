@@ -19,6 +19,10 @@ namespace sadovnik
   void writeSessionEnd(std::ostream & out);
   void writeSession(const Session & session, const std::string & filename);
   Session readSession(const std::string & filename);
+  std::string resolvePresetPath(const std::string & filename);
+  Session readPreset(const std::string & filename, std::string & display_name);
+  void printPresetLoaded(const Session & session, const std::string & display_name,
+                         std::ostream & out);
 
 }
 

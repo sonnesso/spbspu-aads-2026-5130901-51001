@@ -33,7 +33,7 @@ namespace sadovnik
 
     for (std::size_t i = 1; i < value.size(); ++i)
     {
-      if (!isLetter(value[i]) && !isDigit(value[i]))
+      if (!isLetter(value[i]) && !isDigit(value[i]) && value[i] != '_')
       {
         return false;
       }

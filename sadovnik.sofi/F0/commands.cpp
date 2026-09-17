@@ -377,6 +377,36 @@ namespace
     return true;
   }
 
+  bool loadPresetCmd(CommandContext & context, const List< std::string > & tokens,
+                     std::ostream & out)
+  {
+    if (tokens.size() != 2)
+    {
+      return false;
+    }
+
+    const std::string filename = tokenAt(tokens, 1);
+    if (!sadovnik::hasDatExtension(filename))
+    {
+      return false;
+    }
+
+    std::string display_name;
+    sadovnik::Session loaded;
+    try
+    {
+      loaded = sadovnik::readPreset(filename, display_name);
+    }
+    catch (const std::exception &)
+    {
+      return false;
+    }
+
+    context.session() = loaded;
+    sadovnik::printPresetLoaded(context.session(), display_name, out);
+    return true;
+  }
+
 }
 
 namespace sadovnik
@@ -412,7 +442,7 @@ namespace sadovnik
     commands.add("save-session", saveSessionCmd);
     commands.add("load-session", loadSessionCmd);
     commands.add("load-session-force", loadSessionForceCmd);
-    commands.add("load-preset", stubCmd);
+    commands.add("load-preset", loadPresetCmd);
     commands.add("validate", validateCmd);
     commands.add("suggest-strategies", stubCmd);
     commands.add("set-weather", stubCmd);

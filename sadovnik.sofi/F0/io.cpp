@@ -146,9 +146,25 @@ namespace
     session.addStrategyName(name);
   }
 
-  void parseBodyLine(const List< std::string > & tokens, Session & session)
+  void parseBodyLine(const List< std::string > & tokens, Session & session,
+                     std::string * preset_name)
   {
     const std::string & tag = tokenAt(tokens, 0);
+    if (tag == "preset_name")
+    {
+      if (preset_name == nullptr || tokens.size() < 2)
+      {
+        throw std::logic_error(INVALID_FILE);
+      }
+
+      *preset_name = tokenAt(tokens, 1);
+      for (std::size_t i = 2; i < tokens.size(); ++i)
+      {
+        *preset_name += ' ';
+        *preset_name += tokenAt(tokens, i);
+      }
+      return;
+    }
     if (tag == "track")
     {
       parseTrackLine(tokens, session);
@@ -173,14 +189,14 @@ namespace
     throw std::logic_error(INVALID_FILE);
   }
 
-  void readMagicLine(const List< std::string > & tokens)
+  void checkDatHeader(const List< std::string > & tokens, const char * proved)
   {
     if (tokens.size() != 2)
     {
       throw std::logic_error(INVALID_FILE);
     }
 
-    if (tokenAt(tokens, 0) != sadovnik::ioformat::SESSION_MAGIC)
+    if (tokenAt(tokens, 0) != proved)
     {
       throw std::logic_error(INVALID_FILE);
     }
@@ -191,6 +207,44 @@ namespace
     {
       throw std::logic_error(INVALID_FILE);
     }
+  }
+
+  bool fileReadable(const std::string & path)
+  {
+    std::ifstream in(path.c_str());
+    return static_cast< bool >(in);
+  }
+
+  Session readSessionFromStream(std::istream & in, const char * proved,
+                                std::string * preset_name)
+  {
+    std::string line;
+    if (!readNonEmptyLine(in, line))
+    {
+      throw std::logic_error(INVALID_FILE);
+    }
+
+    checkDatHeader(sadovnik::splitTokens(line), proved);
+
+    Session session;
+    while (readNonEmptyLine(in, line))
+    {
+      const List< std::string > tokens = sadovnik::splitTokens(line);
+      if (tokens.empty())
+      {
+        continue;
+      }
+
+      if (tokenAt(tokens, 0) == "end")
+      {
+        session.clearDirty();
+        return session;
+      }
+
+      parseBodyLine(tokens, session, preset_name);
+    }
+
+    throw std::logic_error(INVALID_FILE);
   }
 
 }
@@ -212,7 +266,7 @@ namespace sadovnik
 
   void writeSessionHeader(std::ostream & out)
   {
-    out << ioformat::SESSION_MAGIC << ' ' << ioformat::FORMAT_VERSION << '\n';
+    out << ioformat::SESSION_PROVED << ' ' << ioformat::FORMAT_VERSION << '\n';
   }
 
   void writeSessionTrack(std::ostream & out, const TrackSpec & track)
@@ -309,33 +363,120 @@ namespace sadovnik
       throw std::runtime_error("cannot open file for reading");
     }
 
-    std::string line;
-    if (!readNonEmptyLine(in, line))
+    return readSessionFromStream(in, ioformat::SESSION_PROVED, nullptr);
+  }
+
+  std::string resolvePresetPath(const std::string & filename)
+  {
+    if (fileReadable(filename))
     {
-      throw std::logic_error(INVALID_FILE);
+      return filename;
     }
 
-    readMagicLine(splitTokens(line));
-
-    Session session;
-    while (readNonEmptyLine(in, line))
+    const std::string in_presets = std::string("presets/") + filename;
+    if (fileReadable(in_presets))
     {
-      const List< std::string > tokens = splitTokens(line);
-      if (tokens.empty())
-      {
-        continue;
-      }
-
-      if (tokenAt(tokens, 0) == "end")
-      {
-        session.clearDirty();
-        return session;
-      }
-
-      parseBodyLine(tokens, session);
+      return in_presets;
     }
 
-    throw std::logic_error(INVALID_FILE);
+    const std::string in_lab =
+      std::string("sadovnik.sofi/F0/presets/") + filename;
+    if (fileReadable(in_lab))
+    {
+      return in_lab;
+    }
+
+    return std::string();
+  }
+
+  Session readPreset(const std::string & filename, std::string & display_name)
+  {
+    if (!hasDatExtension(filename))
+    {
+      throw std::logic_error("filename must end with .dat");
+    }
+
+    const std::string path = resolvePresetPath(filename);
+    if (path.empty())
+    {
+      throw std::runtime_error("cannot open file for reading");
+    }
+
+    std::ifstream in(path.c_str());
+    if (!in)
+    {
+      throw std::runtime_error("cannot open file for reading");
+    }
+
+    display_name.clear();
+    Session session =
+      readSessionFromStream(in, ioformat::PRESET_PROVED, &display_name);
+    if (display_name.empty())
+    {
+      display_name = "Preset";
+    }
+    return session;
+  }
+
+  void printPresetLoaded(const Session & session, const std::string & display_name,
+                         std::ostream & out)
+  {
+    const TrackSpec & track = session.track();
+    out << std::fixed << std::setprecision(3);
+    out << "Preset loaded: " << display_name << " (" << track.length_km
+        << " km, " << track.laps << " laps)\n";
+
+    List< std::string > tyre_names;
+    for (auto it = session.tyreNames().begin(); it != session.tyreNames().end();
+         ++it)
+    {
+      tyre_names.pushBack(*it);
+    }
+
+    for (auto it = tyre_names.begin(); it != tyre_names.end(); ++it)
+    {
+      auto best = it;
+      for (auto jt = it; jt != tyre_names.end(); ++jt)
+      {
+        if (*jt < *best)
+        {
+          best = jt;
+        }
+      }
+      if (best != it)
+      {
+        std::string tmp = *it;
+        *it = *best;
+        *best = tmp;
+      }
+    }
+
+    out << "Tyres: ";
+    bool first = true;
+    for (auto it = tyre_names.begin(); it != tyre_names.end(); ++it)
+    {
+      if (!first)
+      {
+        out << ", ";
+      }
+      first = false;
+      out << *it;
+    }
+    out << '\n';
+
+    out << "Strategies: ";
+    first = true;
+    for (auto it = session.strategyNames().begin();
+         it != session.strategyNames().end(); ++it)
+    {
+      if (!first)
+      {
+        out << ", ";
+      }
+      first = false;
+      out << *it;
+    }
+    out << '\n';
   }
 
 }

@@ -7,8 +7,8 @@ namespace sadovnik
   namespace ioformat
   {
 
-    const char SESSION_MAGIC[] = "F0_SESSION";
-    const char PRESET_MAGIC[] = "F0_PRESET";
+    const char SESSION_PROVED[] = "F0_SESSION";
+    const char PRESET_PROVED[] = "F0_PRESET";
     const unsigned FORMAT_VERSION = 1;
 
   }
