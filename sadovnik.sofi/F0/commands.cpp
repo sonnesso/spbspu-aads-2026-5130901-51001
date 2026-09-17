@@ -1,5 +1,6 @@
 #include "commands.hpp"
 
+#include "io.hpp"
 #include "session-types.hpp"
 #include "strategy-ops.hpp"
 #include "tyre-ops.hpp"
@@ -269,6 +270,34 @@ namespace
                                      out);
   }
 
+  bool saveSessionCmd(CommandContext & context, const List< std::string > & tokens,
+                      std::ostream & out)
+  {
+    if (tokens.size() != 2)
+    {
+      return false;
+    }
+
+    const std::string filename = tokenAt(tokens, 1);
+    if (!sadovnik::hasDatExtension(filename))
+    {
+      return false;
+    }
+
+    try
+    {
+      sadovnik::writeSession(context.session(), filename);
+    }
+    catch (const std::exception &)
+    {
+      return false;
+    }
+
+    context.session().clearDirty();
+    out << "Session saved to " << filename << ".\n";
+    return true;
+  }
+
 }
 
 namespace sadovnik
@@ -301,7 +330,7 @@ namespace sadovnik
     commands.add("show-tyres", showTyresCmd);
     commands.add("list-strategies", listStrategiesCmd);
     commands.add("del-strategy", delStrategyCmd);
-    commands.add("save-session", stubCmd);
+    commands.add("save-session", saveSessionCmd);
     commands.add("load-session", stubCmd);
     commands.add("load-session-force", stubCmd);
     commands.add("load-preset", stubCmd);
