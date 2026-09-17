@@ -89,29 +89,35 @@ namespace
   bool setTrackCmd(CommandContext & context, const List< std::string > & tokens,
                    std::ostream & out)
   {
-    if (tokens.size() < 2 || tokens.size() > 3)
+    if (tokens.size() != 3 && tokens.size() != 4)
     {
       return false;
     }
 
+    double length_km = 0.0;
     unsigned laps = 0;
     double base_lap_s = 90.0;
 
-    if (!parsePositiveUnsigned(tokenAt(tokens, 1), laps))
+    if (!sadovnik::parseDouble(tokenAt(tokens, 1), length_km) || length_km <= 0.0)
     {
       return false;
     }
 
-    if (tokens.size() == 3)
+    if (!parsePositiveUnsigned(tokenAt(tokens, 2), laps))
     {
-      if (!sadovnik::parseDouble(tokenAt(tokens, 2), base_lap_s) ||
+      return false;
+    }
+
+    if (tokens.size() == 4)
+    {
+      if (!sadovnik::parseDouble(tokenAt(tokens, 3), base_lap_s) ||
           base_lap_s <= 0.0)
       {
         return false;
       }
     }
 
-    context.session().setTrack(0.0, laps, base_lap_s);
+    context.session().setTrack(length_km, laps, base_lap_s);
     sadovnik::printTrackSetLine(context.session().track(), out);
     return true;
   }
@@ -441,7 +447,7 @@ namespace
     return true;
   }
 
-  bool suggestStrategiesCmd(CommandContext & context,
+  bool suggStrategiesCmd(CommandContext & context,
                             const List< std::string > & tokens, std::ostream & out)
   {
     if (tokens.size() != 1)
@@ -449,7 +455,7 @@ namespace
       return false;
     }
 
-    return sadovnik::suggestStrategies(context.session(), out);
+    return sadovnik::suggStrategies(context.session(), out);
   }
 
   bool crossoverCheckCmd(CommandContext & context,
@@ -501,7 +507,7 @@ namespace sadovnik
     commands.add("load-session-force", loadSessionForceCmd);
     commands.add("load-preset", loadPresetCmd);
     commands.add("validate", validateCmd);
-    commands.add("suggest-strategies", suggestStrategiesCmd);
+    commands.add("suggest-strategies", suggStrategiesCmd);
     commands.add("set-weather", setWeatherCmd);
     commands.add("set-hum", setHumCmd);
     commands.add("crossover-check", crossoverCheckCmd);

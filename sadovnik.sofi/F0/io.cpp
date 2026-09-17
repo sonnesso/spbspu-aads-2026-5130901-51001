@@ -294,7 +294,7 @@ namespace sadovnik
          ++it)
     {
       const TyreSpec & spec = session.tyres().get(*it);
-      out << "tyre " << *it << ' ' << tyreKindToString(spec.kind) << ' '
+      out << "tyre " << *it << ' ' << tyreTypeToString(spec.type) << ' '
           << spec.degr << ' ' << spec.max_laps << ' ' << spec.pit_time;
       if (!spec.compound.empty())
       {

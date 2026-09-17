@@ -12,7 +12,7 @@ namespace
 {
 
   using sadovnik::List;
-  using sadovnik::TyreKind;
+  using sadovnik::TyreType;
   using sadovnik::TyreSpec;
 
   std::string tokenAt(const List< std::string > & tokens, std::size_t index)
@@ -51,13 +51,13 @@ namespace
       return false;
     }
 
-    TyreKind kind = TyreKind::Slick;
-    if (!sadovnik::parseTyreKind(tokenAt(tokens, 2), kind))
+    TyreType type = TyreType::Slick;
+    if (!sadovnik::parseTyreType(tokenAt(tokens, 2), type))
     {
       return false;
     }
 
-    if (!sadovnik::tyreNameMatchesKind(name, kind))
+    if (!sadovnik::tyreNameMatchesType(name, type))
     {
       return false;
     }
@@ -82,7 +82,7 @@ namespace
     std::string compound;
     if (tokens.size() == 7)
     {
-      if (kind != TyreKind::Slick)
+      if (type != TyreType::Slick)
       {
         return false;
       }
@@ -93,12 +93,12 @@ namespace
     }
 
     spec = TyreSpec();
-    spec.kind = kind;
+    spec.type = type;
     spec.compound = compound;
     spec.degr = degr;
     spec.max_laps = max_laps;
     spec.pit_time = pit_time;
-    spec.base_offset = sadovnik::baseOffsetForTyre(kind, compound);
+    spec.base_offset = sadovnik::baseOffsetForTyre(type, compound);
     return true;
   }
 
@@ -107,19 +107,19 @@ namespace
 namespace sadovnik
 {
 
-  bool tyreNameMatchesKind(const std::string & name, TyreKind kind)
+  bool tyreNameMatchesType(const std::string & name, TyreType type)
   {
     if (name == "Soft" || name == "Medium" || name == "Hard")
     {
-      return kind == TyreKind::Slick;
+      return type == TyreType::Slick;
     }
     if (name == "Intermediate")
     {
-      return kind == TyreKind::Inter;
+      return type == TyreType::Inter;
     }
     if (name == "Wet")
     {
-      return kind == TyreKind::Wet;
+      return type == TyreType::Wet;
     }
 
     return true;
@@ -165,7 +165,7 @@ namespace sadovnik
   void writeTyreLine(std::ostream & out, const std::string & name,
                      const TyreSpec & spec)
   {
-    out << name << ": type=" << tyreKindToString(spec.kind);
+    out << name << ": type=" << tyreTypeToString(spec.type);
     if (!spec.compound.empty())
     {
       out << ", compound=" << spec.compound;

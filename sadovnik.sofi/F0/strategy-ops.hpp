@@ -32,7 +32,7 @@ namespace sadovnik
                          const List< std::string > & names, std::ostream & out);
   bool optimalPitWindow(const Session & session, const std::string & tyre_name,
                         unsigned total_laps, std::ostream & out);
-  bool suggestStrategies(Session & session, std::ostream & out);
+  bool suggStrategies(Session & session, std::ostream & out);
   bool crossoverCheck(const Session & session, const std::string & from_tyre,
                       const std::string & to_tyre, std::ostream & out);
 

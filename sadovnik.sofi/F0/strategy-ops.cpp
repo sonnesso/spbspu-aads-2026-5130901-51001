@@ -17,7 +17,7 @@ namespace
 
   using sadovnik::List;
   using sadovnik::Stint;
-  using sadovnik::TyreKind;
+  using sadovnik::TyreType;
   using sadovnik::TyreSpec;
 
   std::string tokenAt(const List< std::string > & tokens, std::size_t index)
@@ -79,7 +79,7 @@ namespace
     for (auto it = stints.begin(); it != stints.end(); ++it)
     {
       const TyreSpec & spec = session.tyres().get(it->tyre_name);
-      if (spec.kind != TyreKind::Slick)
+      if (spec.type != TyreType::Slick)
       {
         continue;
       }
@@ -104,8 +104,8 @@ namespace
         continue;
       }
 
-      const TyreKind kind = session.tyres().get(it->tyre_name).kind;
-      if (kind == TyreKind::Inter || kind == TyreKind::Wet)
+      const TyreType type = session.tyres().get(it->tyre_name).type;
+      if (type == TyreType::Inter || type == TyreType::Wet)
       {
         return true;
       }
@@ -647,16 +647,16 @@ namespace sadovnik
       return false;
     }
 
-    Queue< unsigned > candidates;
+    Queue< unsigned > cands;
     for (unsigned pit_lap = 1; pit_lap < total_laps; ++pit_lap)
     {
       if (isOneTyrePitOptionValid(session, tyre_name, pit_lap, total_laps))
       {
-        candidates.push(pit_lap);
+        cands.push(pit_lap);
       }
     }
 
-    if (candidates.empty())
+    if (cands.empty())
     {
       return false;
     }
@@ -664,10 +664,10 @@ namespace sadovnik
     unsigned best_lap = 0;
     double best_time = 0.0;
     bool any = false;
-    while (!candidates.empty())
+    while (!cands.empty())
     {
       unsigned pit_lap = 0;
-      candidates.drop(pit_lap);
+      cands.drop(pit_lap);
 
       List< Stint > stints;
       stints.pushBack(Stint(tyre_name, pit_lap));
@@ -861,7 +861,7 @@ namespace sadovnik
     return alt;
   }
 
-  void writeSuggestStintBrief(const List< Stint > & stints, std::ostream & out)
+  void writeSuggStintBrief(const List< Stint > & stints, std::ostream & out)
   {
     bool first = true;
     for (auto it = stints.begin(); it != stints.end(); ++it)
@@ -875,41 +875,188 @@ namespace sadovnik
     }
   }
 
-  struct SuggestCandidate
+  struct SuggCand
   {
     std::string base_name;
     List< Stint > stints;
     double time;
   };
 
-  using SuggestRankKey = std::pair< double, std::string >;
-  using SuggestRankTree =
-    sadovnik::BSTree< SuggestRankKey, SuggestCandidate, std::less< SuggestRankKey > >;
+  using SuggRankKey = std::pair< double, std::string >;
+  using SuggRankTree =
+    sadovnik::BSTree< SuggRankKey, SuggCand, std::less< SuggRankKey > >;
 
-  void pushCandidate(const Session & session, const std::string & base_name,
-                     const List< Stint > & stints, SuggestRankTree & ranked)
+  void pushCand(const Session & session, const std::string & base_name,
+                     const List< Stint > & stints, SuggRankTree & ranked)
   {
     if (!isCreateStrategyStintsValid(session, stints))
     {
       return;
     }
 
-    SuggestCandidate candidate;
-    candidate.base_name = base_name;
-    candidate.stints = stints;
-    candidate.time = strategyRaceTime(session, stints);
-    ranked.push(SuggestRankKey(candidate.time, base_name), candidate);
+    SuggCand cand;
+    cand.base_name = base_name;
+    cand.stints = stints;
+    cand.time = strategyRaceTime(session, stints);
+    ranked.push(SuggRankKey(cand.time, base_name), cand);
   }
 
-  bool suggestStrategies(Session & session, std::ostream & out)
+  bool buildOneStintPlan(const Session & session, const std::string & tyre,
+                         List< Stint > & stints)
+  {
+    if (!session.tyres().has(tyre))
+    {
+      return false;
+    }
+
+    const unsigned total = session.track().laps;
+    if (total == 0 || total > session.tyres().get(tyre).max_laps)
+    {
+      return false;
+    }
+
+    stints = List< Stint >();
+    stints.pushBack(Stint(tyre, total));
+    return isCreateStrategyStintsValid(session, stints);
+  }
+
+  void pushDrySuggCands(const Session & session, const std::string & prefix,
+                                unsigned laps, SuggRankTree & ranked)
+  {
+    List< Stint > plan;
+
+    if (buildTwoStintPlan(session, "Soft", "Hard", laps * 34 / 100, plan))
+    {
+      pushCand(session, prefix + "_1Stop_SH", plan, ranked);
+    }
+    if (buildTwoStintPlan(session, "Medium", "Hard", laps * 34 / 100, plan))
+    {
+      pushCand(session, prefix + "_1Stop_MH", plan, ranked);
+    }
+    if (buildTwoStintPlan(session, "Soft", "Medium", laps * 40 / 100, plan))
+    {
+      pushCand(session, prefix + "_1Stop_SM", plan, ranked);
+    }
+    if (buildThreeStintPlan(session, "Soft", "Medium", "Hard", laps * 22 / 100,
+                            laps * 32 / 100, plan))
+    {
+      pushCand(session, prefix + "_2Stop_SMH", plan, ranked);
+    }
+    if (buildThreeStintPlan(session, "Soft", "Medium", "Hard", laps * 18 / 100,
+                            laps * 28 / 100, plan))
+    {
+      pushCand(session, prefix + "_2Stop_SMH_B", plan, ranked);
+    }
+  }
+
+  bool buildFlexibleTwoStintPlan(const Session & session, const std::string & tyre1,
+                                 const std::string & tyre2, List< Stint > & stints)
+  {
+    if (!session.tyres().has(tyre1) || !session.tyres().has(tyre2))
+    {
+      return false;
+    }
+
+    const unsigned total = session.track().laps;
+    if (total < 2)
+    {
+      return false;
+    }
+
+    const unsigned max1 = session.tyres().get(tyre1).max_laps;
+    const unsigned max2 = session.tyres().get(tyre2).max_laps;
+    unsigned prefer = total * 40 / 100;
+    if (prefer == 0)
+    {
+      prefer = 1;
+    }
+    if (prefer >= total)
+    {
+      prefer = total - 1;
+    }
+
+    bool found = false;
+    unsigned best_first = 0;
+    unsigned best_dist = 0;
+    for (unsigned first = 1; first < total; ++first)
+    {
+      if (first > max1 || total - first > max2)
+      {
+        continue;
+      }
+
+      const unsigned dist = first >= prefer ? first - prefer : prefer - first;
+      if (!found || dist < best_dist)
+      {
+        found = true;
+        best_first = first;
+        best_dist = dist;
+      }
+    }
+
+    if (!found)
+    {
+      return false;
+    }
+
+    stints = List< Stint >();
+    stints.pushBack(Stint(tyre1, best_first));
+    stints.pushBack(Stint(tyre2, total - best_first));
+    return isCreateStrategyStintsValid(session, stints);
+  }
+
+  void pushWetSuggCands(const Session & session, const std::string & prefix,
+                                unsigned laps, SuggRankTree & ranked)
+  {
+    List< Stint > plan;
+
+    if (buildOneStintPlan(session, "Intermediate", plan))
+    {
+      pushCand(session, prefix + "_InterOnly", plan, ranked);
+    }
+    if (buildOneStintPlan(session, "Wet", plan))
+    {
+      pushCand(session, prefix + "_WetOnly", plan, ranked);
+    }
+    if (buildFlexibleTwoStintPlan(session, "Intermediate", "Wet", plan))
+    {
+      pushCand(session, prefix + "_1Stop_IW", plan, ranked);
+    }
+    if (buildFlexibleTwoStintPlan(session, "Wet", "Intermediate", plan))
+    {
+      pushCand(session, prefix + "_1Stop_WI", plan, ranked);
+    }
+    if (buildThreeStintPlan(session, "Intermediate", "Wet", "Intermediate",
+                            laps * 25 / 100, laps * 30 / 100, plan))
+    {
+      pushCand(session, prefix + "_2Stop_IWI", plan, ranked);
+    }
+    if (buildThreeStintPlan(session, "Wet", "Intermediate", "Wet", laps * 25 / 100,
+                            laps * 30 / 100, plan))
+    {
+      pushCand(session, prefix + "_2Stop_WIW", plan, ranked);
+    }
+  }
+
+  bool suggStrategies(Session & session, std::ostream & out)
   {
     if (!session.track().is_set)
     {
       return false;
     }
 
-    if (!session.tyres().has("Soft") || !session.tyres().has("Medium") ||
-        !session.tyres().has("Hard"))
+    const bool wet_weather = session.weather() == Weather::Damp ||
+                             session.weather() == Weather::Wet;
+
+    if (wet_weather)
+    {
+      if (!session.tyres().has("Intermediate") && !session.tyres().has("Wet"))
+      {
+        return false;
+      }
+    }
+    else if (!session.tyres().has("Soft") || !session.tyres().has("Medium") ||
+             !session.tyres().has("Hard"))
     {
       return false;
     }
@@ -918,30 +1065,14 @@ namespace sadovnik
     const std::string prefix =
       session.circuitName().empty() ? std::string("Track") : session.circuitName();
 
-    SuggestRankTree ranked;
-    List< Stint > plan;
-
-    if (buildTwoStintPlan(session, "Soft", "Hard", laps * 34 / 100, plan))
+    SuggRankTree ranked;
+    if (wet_weather)
     {
-      pushCandidate(session, prefix + "_1Stop_SH", plan, ranked);
+      pushWetSuggCands(session, prefix, laps, ranked);
     }
-    if (buildTwoStintPlan(session, "Medium", "Hard", laps * 34 / 100, plan))
+    else
     {
-      pushCandidate(session, prefix + "_1Stop_MH", plan, ranked);
-    }
-    if (buildTwoStintPlan(session, "Soft", "Medium", laps * 40 / 100, plan))
-    {
-      pushCandidate(session, prefix + "_1Stop_SM", plan, ranked);
-    }
-    if (buildThreeStintPlan(session, "Soft", "Medium", "Hard", laps * 22 / 100,
-                            laps * 32 / 100, plan))
-    {
-      pushCandidate(session, prefix + "_2Stop_SMH", plan, ranked);
-    }
-    if (buildThreeStintPlan(session, "Soft", "Medium", "Hard", laps * 18 / 100,
-                            laps * 28 / 100, plan))
-    {
-      pushCandidate(session, prefix + "_2Stop_SMH_B", plan, ranked);
+      pushDrySuggCands(session, prefix, laps, ranked);
     }
 
     if (ranked.empty())
@@ -957,12 +1088,12 @@ namespace sadovnik
     std::size_t rank = 1;
     for (auto it = ranked.begin(); it != ranked.end() && rank <= 5; ++it)
     {
-      const SuggestCandidate & candidate = it->second;
+      const SuggCand & cand = it->second;
       const std::string name =
-        uniqueStrategyName(session, candidate.base_name, out);
+        uniqueStrategyName(session, cand.base_name, out);
       try
       {
-        session.strategies().add(name, candidate.stints);
+        session.strategies().add(name, cand.stints);
       }
       catch (const std::exception &)
       {
@@ -971,8 +1102,8 @@ namespace sadovnik
       session.addStrategyName(name);
 
       out << std::fixed << std::setprecision(1);
-      out << "  " << rank << ". " << name << " — " << candidate.time << " s (";
-      writeSuggestStintBrief(candidate.stints, out);
+      out << "  " << rank << ". " << name << " — " << cand.time << " s (";
+      writeSuggStintBrief(cand.stints, out);
       out << ")\n";
 
       if (rank == 1)
@@ -987,21 +1118,21 @@ namespace sadovnik
     return true;
   }
 
-  double humidityCrossoverBias(TyreKind kind, unsigned humidity)
+  double humidityCrossoverBias(TyreType type, unsigned humidity)
   {
     const double ref = 40.0;
     const double scale = 0.15;
     const double hum = static_cast< double >(humidity);
 
-    if (kind == TyreKind::Wet)
+    if (type == TyreType::Wet)
     {
       return (ref - hum) * scale;
     }
-    if (kind == TyreKind::Inter)
+    if (type == TyreType::Inter)
     {
       return (hum - ref) * scale;
     }
-    if (kind == TyreKind::Slick)
+    if (type == TyreType::Slick)
     {
       return 10.0 + hum * 0.05;
     }
@@ -1013,7 +1144,7 @@ namespace sadovnik
   {
     const TyreSpec & spec = session.tyres().get(tyre_name);
     return session.track().base_lap_s + spec.base_offset +
-           humidityCrossoverBias(spec.kind, session.humidity());
+           humidityCrossoverBias(spec.type, session.humidity());
   }
 
   bool crossoverCheck(const Session & session, const std::string & from_tyre,

@@ -6,36 +6,36 @@
 namespace sadovnik
 {
 
-  bool parseTyreKind(const std::string & text, TyreKind & kind)
+  bool parseTyreType(const std::string & text, TyreType & type)
   {
     if (text == "slick")
     {
-      kind = TyreKind::Slick;
+      type = TyreType::Slick;
       return true;
     }
     if (text == "inter")
     {
-      kind = TyreKind::Inter;
+      type = TyreType::Inter;
       return true;
     }
     if (text == "wet")
     {
-      kind = TyreKind::Wet;
+      type = TyreType::Wet;
       return true;
     }
 
     return false;
   }
 
-  const char * tyreKindToString(TyreKind kind)
+  const char * tyreTypeToString(TyreType type)
   {
-    switch (kind)
+    switch (type)
     {
-    case TyreKind::Slick:
+    case TyreType::Slick:
       return "slick";
-    case TyreKind::Inter:
+    case TyreType::Inter:
       return "inter";
-    case TyreKind::Wet:
+    case TyreType::Wet:
       return "wet";
     }
 
@@ -73,13 +73,13 @@ namespace sadovnik
     return false;
   }
 
-  double baseOffsetForTyre(TyreKind kind, const std::string & compound)
+  double baseOffsetForTyre(TyreType type, const std::string & compound)
   {
-    if (kind == TyreKind::Inter)
+    if (type == TyreType::Inter)
     {
       return 12.0;
     }
-    if (kind == TyreKind::Wet)
+    if (type == TyreType::Wet)
     {
       return 20.0;
     }
@@ -160,16 +160,10 @@ namespace sadovnik
 
   void printTrackSetLine(const TrackSpec & track, std::ostream & out)
   {
-    out << std::fixed << std::setprecision(3);
-    if (track.length_km > 0.0)
-    {
-      out << "Track set: " << track.length_km << " km, " << track.laps
-          << " laps, base lap " << track.base_lap_s << " s\n";
-      return;
-    }
-
-    out << "Track set: " << track.laps << " laps, base lap "
-        << track.base_lap_s << " s\n";
+    out << "Track set: ";
+    out << std::fixed << std::setprecision(3) << track.length_km << " km, "
+        << track.laps << " laps, base lap ";
+    out << std::setprecision(1) << track.base_lap_s << " s\n";
   }
 
   void printWeatherSetLine(Weather weather, std::ostream & out)

@@ -15,7 +15,7 @@ namespace sadovnik
     Wet
   };
 
-  enum class TyreKind
+  enum class TyreType
   {
     Slick,
     Inter,
@@ -24,7 +24,7 @@ namespace sadovnik
 
   struct TyreSpec
   {
-    TyreKind kind;
+    TyreType type;
     std::string compound;
     double degr;
     unsigned max_laps;
@@ -32,7 +32,7 @@ namespace sadovnik
     double base_offset;
 
     TyreSpec()
-      : kind(TyreKind::Slick),
+      : type(TyreType::Slick),
         compound(),
         degr(0.0),
         max_laps(0),
@@ -76,11 +76,11 @@ namespace sadovnik
     }
   };
 
-  bool parseTyreKind(const std::string & text, TyreKind & kind);
-  const char * tyreKindToString(TyreKind kind);
+  bool parseTyreType(const std::string & text, TyreType & type);
+  const char * tyreTypeToString(TyreType type);
 
   bool parseCompound(const std::string & text, std::string & compound);
-  double baseOffsetForTyre(TyreKind kind, const std::string & compound);
+  double baseOffsetForTyre(TyreType type, const std::string & compound);
 
   bool parseWeather(const std::string & text, Weather & weather);
   const char * weatherToString(Weather weather);
