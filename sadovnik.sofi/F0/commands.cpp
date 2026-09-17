@@ -53,6 +53,44 @@ namespace
     return false;
   }
 
+  bool setWeatherCmd(CommandContext & context, const List< std::string > & tokens,
+                     std::ostream & out)
+  {
+    if (tokens.size() != 2)
+    {
+      return false;
+    }
+
+    sadovnik::Weather weather = sadovnik::Weather::Dry;
+    if (!sadovnik::parseWeather(tokenAt(tokens, 1), weather))
+    {
+      return false;
+    }
+
+    context.session().setWeather(weather);
+    sadovnik::printWeatherSetLine(weather, out);
+    return true;
+  }
+
+  bool setHumCmd(CommandContext & context, const List< std::string > & tokens,
+                 std::ostream & out)
+  {
+    if (tokens.size() != 2)
+    {
+      return false;
+    }
+
+    unsigned long long humidity = 0;
+    if (!sadovnik::parseUnsigned(tokenAt(tokens, 1), humidity) || humidity > 100)
+    {
+      return false;
+    }
+
+    context.session().setHumidity(static_cast< unsigned >(humidity));
+    sadovnik::printHumiditySetLine(static_cast< unsigned >(humidity), out);
+    return true;
+  }
+
   bool setTrackCmd(CommandContext & context, const List< std::string > & tokens,
                    std::ostream & out)
   {
@@ -457,8 +495,8 @@ namespace sadovnik
     commands.add("load-preset", loadPresetCmd);
     commands.add("validate", validateCmd);
     commands.add("suggest-strategies", suggestStrategiesCmd);
-    commands.add("set-weather", stubCmd);
-    commands.add("set-hum", stubCmd);
+    commands.add("set-weather", setWeatherCmd);
+    commands.add("set-hum", setHumCmd);
     commands.add("crossover-check", stubCmd);
     return commands;
   }

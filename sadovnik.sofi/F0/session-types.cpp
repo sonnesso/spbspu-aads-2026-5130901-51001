@@ -172,4 +172,28 @@ namespace sadovnik
         << track.base_lap_s << " s\n";
   }
 
+  void printWeatherSetLine(Weather weather, std::ostream & out)
+  {
+    out << "Weather set: " << weatherToString(weather) << " (";
+    switch (weather)
+    {
+    case Weather::Dry:
+      out << "Slick tyres may be faster";
+      break;
+    case Weather::Damp:
+      out << "Intermediate tyres may be faster";
+      break;
+    case Weather::Wet:
+      out << "Wet tyres may be faster";
+      break;
+    }
+    out << ")\n";
+  }
+
+  void printHumiditySetLine(unsigned percent, std::ostream & out)
+  {
+    out << "Track humidity: " << percent << "% (" << humidityTrend(percent)
+        << ")\n";
+  }
+
 }

@@ -88,6 +88,8 @@ namespace sadovnik
   const char * humidityTrend(unsigned percent);
 
   void printTrackSetLine(const TrackSpec & track, std::ostream & out);
+  void printWeatherSetLine(Weather weather, std::ostream & out);
+  void printHumiditySetLine(unsigned percent, std::ostream & out);
 
 }
 
