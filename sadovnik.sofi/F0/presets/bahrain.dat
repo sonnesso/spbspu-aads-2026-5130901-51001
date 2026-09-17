@@ -1,0 +1,10 @@
+F0_PRESET 1
+preset_name Bahrain
+track 5.412 57 89.8
+weather dry 0
+tyre Soft slick 0.12 22 23 C3
+tyre Medium slick 0.07 35 23 C2
+tyre Hard slick 0.04 55 23 C1
+strategy Bahrain_1Stop_MH Medium 19 Hard 38
+strategy Bahrain_2Stop_SMH Soft 12 Medium 18 Hard 27
+end

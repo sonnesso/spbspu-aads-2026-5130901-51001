@@ -3,11 +3,14 @@
 #include "tyre-math.hpp"
 
 #include "queue.hpp"
+#include <bs-tree.hpp>
 #include <string-utils.hpp>
 
+#include <functional>
 #include <iomanip>
 #include <ostream>
 #include <string>
+#include <utility>
 
 namespace
 {
@@ -528,6 +531,8 @@ namespace sadovnik
     }
 
     List< CompareEntry > entries;
+    using RankKey = std::pair< double, std::string >;
+    sadovnik::BSTree< RankKey, CompareEntry, std::less< RankKey > > ranked;
     for (auto it = names.begin(); it != names.end(); ++it)
     {
       const List< Stint > * stints = nullptr;
@@ -541,37 +546,26 @@ namespace sadovnik
       entry.stints = stints;
       entry.time = strategyRaceTime(session, *stints);
       entries.pushBack(entry);
+      ranked.push(RankKey(entry.time, entry.name), entry);
     }
 
-    for (auto it = entries.begin(); it != entries.end(); ++it)
+    for (auto it = ranked.begin(); it != ranked.end(); ++it)
     {
-      writeCompareStrategyLine(it->name, it->time, *it->stints, out);
+      writeCompareStrategyLine(it->second.name, it->second.time, *it->second.stints,
+                               out);
     }
 
-    const CompareEntry * best = nullptr;
-    const CompareEntry * runner_up = nullptr;
-    for (auto it = entries.begin(); it != entries.end(); ++it)
-    {
-      if (best == nullptr || it->time < best->time)
-      {
-        runner_up = best;
-        best = &(*it);
-        continue;
-      }
-
-      if (runner_up == nullptr || it->time < runner_up->time)
-      {
-        runner_up = &(*it);
-      }
-    }
-
+    auto best_it = ranked.begin();
+    const CompareEntry & best = best_it->second;
     double delta_s = 0.0;
-    if (runner_up != nullptr)
+    auto runner_it = best_it;
+    ++runner_it;
+    if (runner_it != ranked.end())
     {
-      delta_s = runner_up->time - best->time;
+      delta_s = runner_it->second.time - best.time;
     }
 
-    writeCompareBestLine(best->name, delta_s, out);
+    writeCompareBestLine(best.name, delta_s, out);
 
     if (names.size() == 2)
     {
@@ -852,9 +846,12 @@ namespace sadovnik
     double time;
   };
 
+  using SuggestRankKey = std::pair< double, std::string >;
+  using SuggestRankTree =
+    sadovnik::BSTree< SuggestRankKey, SuggestCandidate, std::less< SuggestRankKey > >;
+
   void pushCandidate(const Session & session, const std::string & base_name,
-                     const List< Stint > & stints,
-                     List< SuggestCandidate > & candidates)
+                     const List< Stint > & stints, SuggestRankTree & ranked)
   {
     if (!isCreateStrategyStintsValid(session, stints))
     {
@@ -865,7 +862,7 @@ namespace sadovnik
     candidate.base_name = base_name;
     candidate.stints = stints;
     candidate.time = strategyRaceTime(session, stints);
-    candidates.pushBack(candidate);
+    ranked.push(SuggestRankKey(candidate.time, base_name), candidate);
   }
 
   bool suggestStrategies(Session & session, std::ostream & out)
@@ -885,61 +882,35 @@ namespace sadovnik
     const std::string prefix =
       session.circuitName().empty() ? std::string("Track") : session.circuitName();
 
-    List< SuggestCandidate > candidates;
+    SuggestRankTree ranked;
     List< Stint > plan;
 
     if (buildTwoStintPlan(session, "Soft", "Hard", laps * 34 / 100, plan))
     {
-      pushCandidate(session, prefix + "_1Stop_SH", plan, candidates);
+      pushCandidate(session, prefix + "_1Stop_SH", plan, ranked);
     }
     if (buildTwoStintPlan(session, "Medium", "Hard", laps * 34 / 100, plan))
     {
-      pushCandidate(session, prefix + "_1Stop_MH", plan, candidates);
+      pushCandidate(session, prefix + "_1Stop_MH", plan, ranked);
     }
     if (buildTwoStintPlan(session, "Soft", "Medium", laps * 40 / 100, plan))
     {
-      pushCandidate(session, prefix + "_1Stop_SM", plan, candidates);
+      pushCandidate(session, prefix + "_1Stop_SM", plan, ranked);
     }
     if (buildThreeStintPlan(session, "Soft", "Medium", "Hard", laps * 22 / 100,
                             laps * 32 / 100, plan))
     {
-      pushCandidate(session, prefix + "_2Stop_SMH", plan, candidates);
+      pushCandidate(session, prefix + "_2Stop_SMH", plan, ranked);
     }
     if (buildThreeStintPlan(session, "Soft", "Medium", "Hard", laps * 18 / 100,
                             laps * 28 / 100, plan))
     {
-      pushCandidate(session, prefix + "_2Stop_SMH_B", plan, candidates);
+      pushCandidate(session, prefix + "_2Stop_SMH_B", plan, ranked);
     }
 
-    if (candidates.empty())
+    if (ranked.empty())
     {
       return false;
-    }
-
-    for (auto it = candidates.begin(); it != candidates.end(); ++it)
-    {
-      auto best = it;
-      for (auto jt = it; jt != candidates.end(); ++jt)
-      {
-        if (jt->time < best->time)
-        {
-          best = jt;
-        }
-      }
-      if (best != it)
-      {
-        SuggestCandidate tmp = *it;
-        *it = *best;
-        *best = tmp;
-      }
-    }
-
-    List< SuggestCandidate > chosen;
-    std::size_t count = 0;
-    for (auto it = candidates.begin(); it != candidates.end() && count < 5; ++it)
-    {
-      chosen.pushBack(*it);
-      ++count;
     }
 
     const std::string label =
@@ -948,12 +919,14 @@ namespace sadovnik
 
     std::string best_name;
     std::size_t rank = 1;
-    for (auto it = chosen.begin(); it != chosen.end(); ++it)
+    for (auto it = ranked.begin(); it != ranked.end() && rank <= 5; ++it)
     {
-      const std::string name = uniqueStrategyName(session, it->base_name, out);
+      const SuggestCandidate & candidate = it->second;
+      const std::string name =
+        uniqueStrategyName(session, candidate.base_name, out);
       try
       {
-        session.strategies().add(name, it->stints);
+        session.strategies().add(name, candidate.stints);
       }
       catch (const std::exception &)
       {
@@ -962,8 +935,8 @@ namespace sadovnik
       session.addStrategyName(name);
 
       out << std::fixed << std::setprecision(1);
-      out << "  " << rank << ". " << name << " — " << it->time << " s (";
-      writeSuggestStintBrief(it->stints, out);
+      out << "  " << rank << ". " << name << " — " << candidate.time << " s (";
+      writeSuggestStintBrief(candidate.stints, out);
       out << ")\n";
 
       if (rank == 1)

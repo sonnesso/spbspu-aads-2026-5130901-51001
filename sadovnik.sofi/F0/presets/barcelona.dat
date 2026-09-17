@@ -1,0 +1,10 @@
+F0_PRESET 1
+preset_name Barcelona
+track 4.657 66 71.5
+weather dry 0
+tyre Soft slick 0.12 22 23 C3
+tyre Medium slick 0.07 35 23 C2
+tyre Hard slick 0.04 55 23 C1
+strategy Barcelona_1Stop_MH Medium 22 Hard 44
+strategy Barcelona_2Stop_SMH Soft 14 Medium 21 Hard 31
+end

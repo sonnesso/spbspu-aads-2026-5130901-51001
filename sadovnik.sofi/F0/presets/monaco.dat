@@ -1,0 +1,10 @@
+F0_PRESET 1
+preset_name Monaco
+track 3.337 78 71.5
+weather dry 0
+tyre Soft slick 0.12 22 23 C5
+tyre Medium slick 0.07 35 23 C4
+tyre Hard slick 0.04 55 23 C3
+strategy Monaco_1Stop_MH Medium 26 Hard 52
+strategy Monaco_2Stop_SMH Soft 17 Medium 24 Hard 37
+end

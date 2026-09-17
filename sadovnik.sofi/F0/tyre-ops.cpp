@@ -1,7 +1,9 @@
 #include "tyre-ops.hpp"
 
+#include <bs-tree.hpp>
 #include <string-utils.hpp>
 
+#include <functional>
 #include <iomanip>
 #include <ostream>
 #include <string>
@@ -150,41 +152,6 @@ namespace sadovnik
     return fillTyreSpecFromTokens(tokens, name, spec);
   }
 
-  void sortTyreNames(List< std::string > & names)
-  {
-    if (names.empty())
-    {
-      return;
-    }
-
-    List< std::string > sorted;
-    for (auto it = names.begin(); it != names.end(); ++it)
-    {
-      std::string cur = *it;
-      List< std::string > next;
-      bool placed = false;
-
-      for (auto sit = sorted.begin(); sit != sorted.end(); ++sit)
-      {
-        if (!placed && cur < *sit)
-        {
-          next.pushBack(cur);
-          placed = true;
-        }
-        next.pushBack(*sit);
-      }
-
-      if (!placed)
-      {
-        next.pushBack(cur);
-      }
-
-      sorted = next;
-    }
-
-    names = sorted;
-  }
-
   void writeOffset(std::ostream & out, double offset)
   {
     out << "offset=";
@@ -216,19 +183,20 @@ namespace sadovnik
   {
     out << "Tyres:\n";
 
-    List< std::string > names;
+    sadovnik::BSTree< std::string, char, std::less< std::string > > ordered;
     for (auto it = session.tyreNames().begin(); it != session.tyreNames().end();
          ++it)
     {
-      names.pushBack(*it);
+      if (!ordered.has(*it))
+      {
+        ordered.push(*it, 0);
+      }
     }
 
-    sortTyreNames(names);
-
-    for (auto it = names.begin(); it != names.end(); ++it)
+    for (auto it = ordered.begin(); it != ordered.end(); ++it)
     {
-      const TyreSpec & spec = session.tyres().get(*it);
-      writeTyreLine(out, *it, spec);
+      const TyreSpec & spec = session.tyres().get(it->first);
+      writeTyreLine(out, it->first, spec);
     }
   }
 

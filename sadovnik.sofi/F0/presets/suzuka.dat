@@ -1,0 +1,10 @@
+F0_PRESET 1
+preset_name Suzuka
+track 5.807 53 87.0
+weather dry 0
+tyre Soft slick 0.12 22 23 C3
+tyre Medium slick 0.07 35 23 C2
+tyre Hard slick 0.04 55 23 C1
+strategy Suzuka_1Stop_MH Medium 18 Hard 35
+strategy Suzuka_2Stop_SMH Soft 11 Medium 16 Hard 26
+end
