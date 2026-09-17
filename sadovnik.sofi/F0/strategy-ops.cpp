@@ -94,6 +94,42 @@ namespace
     return keys.size() >= 2;
   }
 
+  bool usesWetWeatherTyre(const sadovnik::Session & session,
+                          const List< Stint > & stints)
+  {
+    for (auto it = stints.begin(); it != stints.end(); ++it)
+    {
+      if (!session.tyres().has(it->tyre_name))
+      {
+        continue;
+      }
+
+      const TyreKind kind = session.tyres().get(it->tyre_name).kind;
+      if (kind == TyreKind::Inter || kind == TyreKind::Wet)
+      {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  bool requiresTwoSlickCompounds(const sadovnik::Session & session,
+                                 const List< Stint > & stints)
+  {
+    if (session.weather() != sadovnik::Weather::Dry)
+    {
+      return false;
+    }
+
+    if (usesWetWeatherTyre(session, stints))
+    {
+      return false;
+    }
+
+    return true;
+  }
+
   std::string strategyValidationError(const sadovnik::Session & session,
                                       const List< Stint > & stints)
   {
@@ -124,7 +160,7 @@ namespace
       return "laps mismatch";
     }
 
-    if (session.weather() == sadovnik::Weather::Dry &&
+    if (requiresTwoSlickCompounds(session, stints) &&
         !hasEnoughSlickCompoundsForDry(session, stints))
     {
       return "must use at least 2 slick compounds in dry race";
@@ -377,11 +413,11 @@ namespace sadovnik
     return strategyValidationError(session, stints).empty();
   }
 
-  void printStrategyValidLine(const std::string & name, Weather weather,
+  void printStrategyValidLine(const std::string & name, bool two_slick_rule,
                               std::ostream & out)
   {
     out << "Strategy \"" << name << "\" is valid: laps OK";
-    if (weather == Weather::Dry)
+    if (two_slick_rule)
     {
       out << ", 2 slick compounds";
     }
@@ -404,7 +440,7 @@ namespace sadovnik
       return true;
     }
 
-    printStrategyValidLine(name, session.weather(), out);
+    printStrategyValidLine(name, requiresTwoSlickCompounds(session, stints), out);
     return true;
   }
 
