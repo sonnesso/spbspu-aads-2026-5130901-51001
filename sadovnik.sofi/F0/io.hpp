@@ -15,6 +15,7 @@ namespace sadovnik
   void writeSessionWeather(std::ostream & out, Weather weather,
                             unsigned humidity);
   void writeSessionTyres(std::ostream & out, const Session & session);
+  void writeSessionStrategies(std::ostream & out, const Session & session);
   void writeSessionEnd(std::ostream & out);
   void writeSession(const Session & session, const std::string & filename);
   Session readSession(const std::string & filename);

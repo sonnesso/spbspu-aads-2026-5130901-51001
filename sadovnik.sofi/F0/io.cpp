@@ -2,6 +2,7 @@
 
 #include "io-format.hpp"
 #include "session-types.hpp"
+#include "strategy-ops.hpp"
 #include "tyre-ops.hpp"
 
 #include <string-utils.hpp>
@@ -16,6 +17,7 @@ namespace
 
   using sadovnik::List;
   using sadovnik::Session;
+  using sadovnik::Stint;
   using sadovnik::TyreSpec;
   using sadovnik::Weather;
 
@@ -121,6 +123,29 @@ namespace
     session.addTyreName(name);
   }
 
+  void parseStrategyLine(const List< std::string > & tokens, Session & session)
+  {
+    std::string name;
+    List< Stint > stints;
+    if (!sadovnik::parseStrategyLineTokens(tokens, name, stints))
+    {
+      throw std::logic_error(INVALID_FILE);
+    }
+
+    if (session.strategies().has(name))
+    {
+      throw std::logic_error(INVALID_FILE);
+    }
+
+    if (!sadovnik::isCreateStrategyStintsValid(session, stints))
+    {
+      throw std::logic_error(INVALID_FILE);
+    }
+
+    session.strategies().add(name, stints);
+    session.addStrategyName(name);
+  }
+
   void parseBodyLine(const List< std::string > & tokens, Session & session)
   {
     const std::string & tag = tokenAt(tokens, 0);
@@ -141,7 +166,8 @@ namespace
     }
     if (tag == "strategy")
     {
-      throw std::logic_error("strategy blocks not implemented yet");
+      parseStrategyLine(tokens, session);
+      return;
     }
 
     throw std::logic_error(INVALID_FILE);
@@ -224,6 +250,21 @@ namespace sadovnik
     }
   }
 
+  void writeSessionStrategies(std::ostream & out, const Session & session)
+  {
+    for (auto it = session.strategyNames().begin();
+         it != session.strategyNames().end(); ++it)
+    {
+      const List< Stint > & stints = session.strategies().get(*it);
+      out << "strategy " << *it;
+      for (auto sit = stints.begin(); sit != stints.end(); ++sit)
+      {
+        out << ' ' << sit->tyre_name << ' ' << sit->laps;
+      }
+      out << '\n';
+    }
+  }
+
   void writeSessionEnd(std::ostream & out)
   {
     out << "end\n";
@@ -246,6 +287,7 @@ namespace sadovnik
     writeSessionTrack(out, session.track());
     writeSessionWeather(out, session.weather(), session.humidity());
     writeSessionTyres(out, session);
+    writeSessionStrategies(out, session);
     writeSessionEnd(out);
 
     if (!out)

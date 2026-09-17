@@ -310,8 +310,8 @@ namespace
 namespace sadovnik
 {
 
-  bool parseCreateStrategyTokens(const List< std::string > & tokens,
-                                 std::string & name, List< Stint > & stints)
+  bool fillStrategyFromTokens(const List< std::string > & tokens,
+                              std::string & name, List< Stint > & stints)
   {
     if (tokens.size() < 4)
     {
@@ -349,6 +349,23 @@ namespace sadovnik
     }
 
     return true;
+  }
+
+  bool parseCreateStrategyTokens(const List< std::string > & tokens,
+                                 std::string & name, List< Stint > & stints)
+  {
+    return fillStrategyFromTokens(tokens, name, stints);
+  }
+
+  bool parseStrategyLineTokens(const List< std::string > & tokens,
+                               std::string & name, List< Stint > & stints)
+  {
+    if (tokens.empty() || tokenAt(tokens, 0) != "strategy")
+    {
+      return false;
+    }
+
+    return fillStrategyFromTokens(tokens, name, stints);
   }
 
   bool isCreateStrategyStintsValid(const Session & session,

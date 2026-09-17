@@ -15,6 +15,8 @@ namespace sadovnik
 
   bool parseCreateStrategyTokens(const List< std::string > & tokens,
                                  std::string & name, List< Stint > & stints);
+  bool parseStrategyLineTokens(const List< std::string > & tokens,
+                               std::string & name, List< Stint > & stints);
   bool isCreateStrategyStintsValid(const Session & session,
                                    const List< Stint > & stints);
   void printStrategyCreatedLine(const std::string & name,
