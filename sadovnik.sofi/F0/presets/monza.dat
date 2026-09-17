@@ -1,0 +1,10 @@
+F0_PRESET 1
+preset_name Monza
+track 5.793 53 80.3
+weather dry 0
+tyre Soft slick 0.12 22 23 C5
+tyre Medium slick 0.07 35 23 C4
+tyre Hard slick 0.04 55 23 C3
+strategy Monza_1Stop_MH Medium 18 Hard 35
+strategy Monza_2Stop_SMH Soft 11 Medium 16 Hard 26
+end

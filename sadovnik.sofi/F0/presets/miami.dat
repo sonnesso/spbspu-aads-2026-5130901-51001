@@ -1,0 +1,10 @@
+F0_PRESET 1
+preset_name Miami
+track 5.412 57 87.7
+weather dry 0
+tyre Soft slick 0.12 22 23 C5
+tyre Medium slick 0.07 35 23 C4
+tyre Hard slick 0.04 55 23 C3
+strategy Miami_1Stop_MH Medium 19 Hard 38
+strategy Miami_2Stop_SMH Soft 12 Medium 18 Hard 27
+end

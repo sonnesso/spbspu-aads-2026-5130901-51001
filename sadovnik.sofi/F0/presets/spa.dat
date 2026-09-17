@@ -1,0 +1,10 @@
+F0_PRESET 1
+preset_name Spa
+track 7.004 44 101.4
+weather dry 0
+tyre Soft slick 0.12 22 23 C4
+tyre Medium slick 0.07 35 23 C3
+tyre Hard slick 0.04 55 23 C1
+strategy Spa_1Stop_MH Medium 14 Hard 30
+strategy Spa_2Stop_SMH Soft 10 Medium 14 Hard 20
+end
