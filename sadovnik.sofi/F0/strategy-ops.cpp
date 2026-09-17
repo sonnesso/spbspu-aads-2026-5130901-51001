@@ -987,4 +987,69 @@ namespace sadovnik
     return true;
   }
 
+  double humidityCrossoverBias(TyreKind kind, unsigned humidity)
+  {
+    const double ref = 40.0;
+    const double scale = 0.15;
+    const double hum = static_cast< double >(humidity);
+
+    if (kind == TyreKind::Wet)
+    {
+      return (ref - hum) * scale;
+    }
+    if (kind == TyreKind::Inter)
+    {
+      return (hum - ref) * scale;
+    }
+    if (kind == TyreKind::Slick)
+    {
+      return 10.0 + hum * 0.05;
+    }
+
+    return 0.0;
+  }
+
+  double crossoverLapTime(const Session & session, const std::string & tyre_name)
+  {
+    const TyreSpec & spec = session.tyres().get(tyre_name);
+    return session.track().base_lap_s + spec.base_offset +
+           humidityCrossoverBias(spec.kind, session.humidity());
+  }
+
+  bool crossoverCheck(const Session & session, const std::string & from_tyre,
+                      const std::string & to_tyre, std::ostream & out)
+  {
+    if (session.weather() == Weather::Dry)
+    {
+      return false;
+    }
+
+    if (!session.track().is_set)
+    {
+      return false;
+    }
+
+    if (!session.tyres().has(from_tyre) || !session.tyres().has(to_tyre))
+    {
+      return false;
+    }
+
+    const double from_time = crossoverLapTime(session, from_tyre);
+    const double to_time = crossoverLapTime(session, to_tyre);
+
+    out << std::fixed << std::setprecision(1);
+    if (to_time < from_time)
+    {
+      out << "Crossover: switch to " << to_tyre << " recommended (";
+    }
+    else
+    {
+      out << "Crossover: stay on " << from_tyre << " recommended (";
+    }
+
+    out << from_tyre << ' ' << from_time << "s vs " << to_tyre << ' ' << to_time
+        << "s at humidity " << session.humidity() << "%)\n";
+    return true;
+  }
+
 }

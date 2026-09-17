@@ -48,11 +48,6 @@ namespace
     return true;
   }
 
-  bool stubCmd(CommandContext &, const List< std::string > &, std::ostream &)
-  {
-    return false;
-  }
-
   bool setWeatherCmd(CommandContext & context, const List< std::string > & tokens,
                      std::ostream & out)
   {
@@ -457,6 +452,18 @@ namespace
     return sadovnik::suggestStrategies(context.session(), out);
   }
 
+  bool crossoverCheckCmd(CommandContext & context,
+                         const List< std::string > & tokens, std::ostream & out)
+  {
+    if (tokens.size() != 3)
+    {
+      return false;
+    }
+
+    return sadovnik::crossoverCheck(context.session(), tokenAt(tokens, 1),
+                                    tokenAt(tokens, 2), out);
+  }
+
 }
 
 namespace sadovnik
@@ -497,7 +504,7 @@ namespace sadovnik
     commands.add("suggest-strategies", suggestStrategiesCmd);
     commands.add("set-weather", setWeatherCmd);
     commands.add("set-hum", setHumCmd);
-    commands.add("crossover-check", stubCmd);
+    commands.add("crossover-check", crossoverCheckCmd);
     return commands;
   }
 
